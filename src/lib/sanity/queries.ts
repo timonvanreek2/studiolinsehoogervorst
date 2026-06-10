@@ -1,4 +1,4 @@
-import { client, imageUrl } from './client';
+import { client } from './client';
 import type { Project } from '$lib/types';
 
 const PROJECT_FIELDS = `
@@ -14,6 +14,7 @@ const PROJECT_FIELDS = `
 	"image": heroImage.asset->url,
 	"heroHotspot": heroImage.hotspot,
 	"gallery": gallery[]{ "url": asset->url, "size": coalesce(size, "auto") },
+	"featuredImages": featuredImages[].asset->url,
 	heroColor,
 	featured
 `;
@@ -33,21 +34,6 @@ export async function getProjectBySlug(slug: string): Promise<Project | null> {
 	return result ? mapProject(result) : null;
 }
 
-export async function getProjectsByCategory(category: string): Promise<Project[]> {
-	const results = await client.fetch(
-		`*[_type == "project" && (category == $category || $category in categories)] | order(order asc) { ${PROJECT_FIELDS} }`,
-		{ category }
-	);
-	return results.map(mapProject);
-}
-
-export async function getFeaturedProject(): Promise<Project> {
-	const result = await client.fetch(
-		`*[_type == "project" && featured == true][0] { ${PROJECT_FIELDS} }`
-	);
-	return mapProject(result);
-}
-
 export async function getStudioContent() {
 	return client.fetch(`*[_type == "studioContent"][0] {
 		"image": image.asset->url,
@@ -55,7 +41,7 @@ export async function getStudioContent() {
 		contactEmail,
 		contactPhone,
 		address,
-		newBusinessEmail
+		instagram
 	}`);
 }
 
@@ -73,6 +59,8 @@ function mapProject(raw: any): Project {
 		return { url: item.url || '', size: item.size || 'auto' };
 	}).filter((g: any) => g.url);
 
+	const featuredImages: string[] = (raw.featuredImages || []).filter((u: unknown) => typeof u === 'string' && u.length > 0);
+
 	return {
 		slug: raw.slug,
 		title: raw.title,
@@ -84,6 +72,7 @@ function mapProject(raw: any): Project {
 		description: raw.description || [],
 		image: raw.image || '',
 		gallery,
+		featuredImages,
 		heroColor: raw.heroColor || '#999',
 		sections: [],
 		featured: raw.featured || false

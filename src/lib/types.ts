@@ -18,6 +18,7 @@ export interface Project {
 	description: string[];
 	image: string;
 	gallery: GalleryImage[];
+	featuredImages?: string[];
 	heroColor: string;
 	sections: EditorialSection[];
 	featured?: boolean;

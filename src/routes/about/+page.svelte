@@ -1,239 +1,333 @@
 <script lang="ts">
+	import { page } from '$app/state';
+
 	let { data } = $props();
+
+	let path = $derived(page.url.pathname);
+	let isAbout = $derived(path.startsWith('/about'));
+
+	let image = $derived(data.studio?.image ?? null);
+
+	// The source studio image is 1920px wide; offer up to that for the
+	// 50vw full-height panel on large screens (50vw of a 1440 display ≈ 720px,
+	// 2× for retina ≈ 1440), and a full-width crop below the split breakpoint.
+	function imageSrcset(url: string): string {
+		return [800, 1200, 1600, 1920].map((w) => `${url}?w=${w}&auto=format&q=85 ${w}w`).join(', ');
+	}
 </script>
 
 <svelte:head>
 	<title>About — Studio Linse Hoogervorst</title>
+	<meta property="og:title" content="About — Studio Linse Hoogervorst" />
+	<meta property="og:description" content="A practice for interior architecture, founded by Paul Linse in Amsterdam." />
 </svelte:head>
 
-<main class="about-page">
-	<div class="about-grid">
-		<!-- Left column: manifesto + biography -->
-		<div class="about-text">
-			<section class="manifesto">
-				<p class="manifesto-lead">Studio Linse Hoogervorst is a practice for interior architecture, founded by Paul Linse in Amsterdam, 1993.</p>
-				{#if data.studio?.aboutText}
-					{#each data.studio.aboutText.split('\n\n') as paragraph}
-						<p>{paragraph}</p>
-					{/each}
-				{/if}
-			</section>
+<h1 class="sr-only">About — Studio Linse Hoogervorst</h1>
+
+<a href="/" class="wordmark"><img src="/wordmark.svg" alt="Studio Linse Hoogervorst" class="wordmark-img" /></a>
+
+<nav class="nav-right">
+	<a href="/" class="nav-link">Selected</a><span class="sep">,&nbsp;</span><a href="/projects" class="nav-link">Index</a><span class="sep">,&nbsp;</span><a href="/about" class="nav-link" class:selected={isAbout}>About</a>
+</nav>
+
+<main class="about">
+	{#if image}
+		<div class="portrait">
+			<img
+				class="portrait-img"
+				src="{image}?w=1600&auto=format&q=85"
+				srcset={imageSrcset(image)}
+				sizes="(min-width: 1152px) 50vw, 100vw"
+				alt="Studio Linse Hoogervorst"
+				fetchpriority="high"
+			/>
+		</div>
+	{/if}
+
+	<div class="column">
+		<div class="bio">
+			<!-- Founding year intentionally omitted: this lead said 1993 while the Sanity aboutText says 1999 — resolve the discrepancy in Sanity, then reconsider stating it here. -->
+			<p class="lead">Studio Linse Hoogervorst is a practice for interior architecture, founded by Paul Linse in Amsterdam.</p>
+			{#if data.studio?.aboutText}
+				{#each data.studio.aboutText.split('\n\n') as paragraph}
+					<p>{paragraph}</p>
+				{/each}
+			{/if}
 		</div>
 
-		<!-- Right column: image -->
-		{#if data.studio?.image}
-			<div class="about-image">
-				<img
-					src="{data.studio.image}?w=800&auto=format&q=85"
-					alt="Studio Linse Hoogervorst"
-				/>
-			</div>
-		{/if}
-	</div>
-
-	<!-- Enquiry -->
-	<section class="section">
-		<h2 class="section-label">Enquiry</h2>
-		<div class="contact-grid">
+		<div class="contact">
 			{#if data.studio?.contactEmail}
-				<div class="contact-row">
-					<span class="contact-label">General</span>
-					<a href="mailto:{data.studio.contactEmail}">{data.studio.contactEmail}</a>
-				</div>
-			{/if}
-			{#if data.studio?.newBusinessEmail}
-				<div class="contact-row">
-					<span class="contact-label">New business</span>
-					<a href="mailto:{data.studio.newBusinessEmail}">{data.studio.newBusinessEmail}</a>
-				</div>
+				<a href="mailto:{data.studio.contactEmail}">{data.studio.contactEmail}</a>
 			{/if}
 			{#if data.studio?.contactPhone}
-				<div class="contact-row">
-					<span class="contact-label">Phone</span>
-					<a href="tel:{data.studio.contactPhone}">{data.studio.contactPhone}</a>
-				</div>
+				<a href="tel:{data.studio.contactPhone}">{data.studio.contactPhone}</a>
+			{/if}
+			{#if data.studio?.instagram}
+				<a href="https://instagram.com/{data.studio.instagram}" target="_blank" rel="noopener">@{data.studio.instagram}</a>
 			{/if}
 			{#if data.studio?.address}
-				<div class="contact-row">
-					<span class="contact-label">Visit</span>
-					<span>{@html data.studio.address.replace(/\n/g, '<br />')}</span>
-				</div>
+				<span class="address">{@html data.studio.address.replace(/\n/g, '<br />')}</span>
 			{/if}
 		</div>
-	</section>
 
-	<!-- Awards -->
-	{#if data.awards?.length}
-		<section class="section">
-			<h2 class="section-label">Awards</h2>
-			<div class="list">
-				{#each data.awards as item}
-					<div class="list-row">
-						<span class="list-year">{item.year}</span>
-						<span>{item.title}</span>
-					</div>
-				{/each}
-			</div>
-		</section>
-	{/if}
+		{#if data.awards?.length}
+			<section class="section">
+				<h2 class="section-title">Awards</h2>
+				<div class="detail-list">
+					{#each data.awards as item}
+						<div class="detail-row">
+							<span class="detail-year">{item.year}</span>
+							<div class="detail-body">
+								<span class="detail-source">{item.title.split('—')[0]?.trim() ?? item.title}</span>
+								{#if item.title.includes('—')}
+									<span class="detail-project">{item.title.split('—').slice(1).join('—').trim()}</span>
+								{/if}
+							</div>
+						</div>
+					{/each}
+				</div>
+			</section>
+		{/if}
 
-	<!-- Press -->
-	{#if data.press?.length}
-		<section class="section">
-			<h2 class="section-label">Press</h2>
-			<div class="list">
-				{#each data.press as item}
-					<div class="list-row">
-						<span class="list-year">{item.year}</span>
-						<span>{item.title}</span>
-					</div>
-				{/each}
-			</div>
-		</section>
-	{/if}
+		{#if data.press?.length}
+			<section class="section">
+				<h2 class="section-title">Press</h2>
+				<div class="detail-list">
+					{#each data.press as item}
+						<div class="detail-row">
+							<span class="detail-year">{item.year}</span>
+							<div class="detail-body">
+								<span class="detail-source">{item.title.split('—')[0]?.trim() ?? item.title}</span>
+								{#if item.title.includes('—')}
+									<span class="detail-project">{item.title.split('—').slice(1).join('—').trim()}</span>
+								{/if}
+							</div>
+						</div>
+					{/each}
+				</div>
+			</section>
+		{/if}
+	</div>
 </main>
 
 <style>
-	.about-page {
-		padding: 120px 32px 160px;
-		max-width: 1000px;
+	/* ─────────────────────────────────────────────────────────────
+	   About — the portrait split.
+
+	   On wide screens the studio image is fixed to the left half and runs
+	   the full height of the viewport, so the site-wide datum (the fixed
+	   wordmark + nav at 50vh) crosses it. The wide wordmark hangs over the
+	   image and inverts through mix-blend exclusion — the same gesture as
+	   the home hero, which is what makes About belong to the rest of the
+	   site instead of floating off as a centred column. The text reads in
+	   the right half; only the narrow nav threads over it.
+
+	   Below 1152px there isn't room for the wordmark, a text measure, and
+	   the image side by side, so the layout stacks: image on top, text
+	   below, chrome anchored to the top corners.
+	   ───────────────────────────────────────────────────────────── */
+
+	/* Datum chrome — shared with the rest of the site. */
+	.wordmark {
+		position: fixed;
+		top: 24px;
+		left: 16px;
+		z-index: 200;
+		display: flex;
+		align-items: center;
+		/* Legible fallback for browsers without mix-blend-mode support */
+		color: #000;
+		transition: opacity 0.15s ease-out;
+	}
+
+	@supports (mix-blend-mode: exclusion) {
+		.wordmark {
+			color: #fff;
+			mix-blend-mode: exclusion;
+		}
+	}
+
+	.wordmark:hover {
+		opacity: 0.5;
+	}
+
+	.wordmark-img {
+		height: 16px;
+		width: auto;
+		display: block;
+	}
+
+	/* Below the split breakpoint the 291px-wide wordmark + nav can't share a
+	   line on a phone, so the nav stacks directly under the wordmark as a
+	   logo-and-nav lockup over the top of the image. */
+	.nav-right {
+		position: fixed;
+		top: 50px;
+		left: 16px;
+		right: auto;
+		z-index: 200;
+		font-family: var(--font-sans);
+		font-size: 13px;
+		font-weight: 550;
+		line-height: 1;
+		/* Legible fallback for browsers without mix-blend-mode support */
+		color: #000;
+	}
+
+	@supports (mix-blend-mode: exclusion) {
+		.nav-right {
+			color: #fff;
+			mix-blend-mode: exclusion;
+		}
+	}
+
+	.nav-link {
+		color: inherit;
+		transition: opacity 0.15s ease-out;
+	}
+
+	.nav-link:hover {
+		opacity: 0.5;
+	}
+
+	.nav-link.selected {
+		font-style: italic;
+	}
+
+	.sep {
+		font-style: normal;
+	}
+
+	/* Stacked (mobile / tablet) layout — image first, text below. */
+	.portrait-img {
+		width: 100%;
+		height: 56vh;
+		object-fit: cover;
+		object-position: center;
+		display: block;
+	}
+
+	.about {
+		font-family: var(--font-sans);
+		font-weight: 500;
+		font-size: 13px;
+		line-height: 1.5;
+		color: var(--color-primary);
+	}
+
+	.column {
+		max-width: 32rem;
 		margin: 0 auto;
+		padding: 48px 16px 100px;
 	}
 
-	.about-grid {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 64px;
-		margin-bottom: 120px;
-	}
-
-	.manifesto {
-		font-family: var(--font-serif);
-		font-size: 17px;
-		line-height: 1.6;
-	}
-
-	.manifesto-lead {
-		font-size: 22px;
-		line-height: 1.4;
-		margin-bottom: 32px;
-	}
-
-	.manifesto p {
+	/* Paragraph breaks marked by space, not indent (never both). */
+	.bio p {
 		margin: 0;
 	}
 
-	.manifesto p + p {
+	.bio p + p {
 		margin-top: 1em;
 	}
 
-	.about-image img {
-		width: 100%;
-		height: auto;
+	.bio {
+		margin-bottom: 40px;
+	}
+
+	.contact {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+
+	.contact a,
+	.contact span {
+		color: var(--color-primary);
+		text-decoration: none;
+		transition: opacity 0.15s ease-out;
+	}
+
+	.contact a:hover {
+		opacity: 0.5;
 	}
 
 	.section {
-		margin-bottom: 80px;
+		margin-top: 80px;
 	}
 
-	.section:last-child {
-		margin-bottom: 0;
+	.section-title {
+		font-size: 13px;
+		font-weight: 500;
+		margin: 0 0 16px;
 	}
 
-	.section-label {
-		font-family: var(--font-mono);
-		font-size: 10px;
-		text-transform: uppercase;
-		letter-spacing: 2px;
-		color: var(--color-muted);
-		margin-bottom: 24px;
-	}
-
-	.contact-grid {
+	.detail-list {
 		display: flex;
 		flex-direction: column;
 	}
 
-	.contact-row {
+	.detail-row {
 		display: flex;
-		gap: 16px;
+		gap: 24px;
 		padding: 8px 0;
-		font-family: var(--font-serif);
-		font-size: 15px;
-		border-top: 1px solid var(--color-structural);
 	}
 
-	.contact-row:last-child {
-		border-bottom: 1px solid var(--color-structural);
-	}
-
-	.contact-label {
-		width: 120px;
+	.detail-year {
+		width: 48px;
 		flex-shrink: 0;
 		color: var(--color-muted);
+		font-variant-numeric: tabular-nums;
 	}
 
-	.contact-row a {
-		transition: opacity 0.15s;
-	}
-
-	.contact-row a:hover {
-		opacity: 0.6;
-	}
-
-	.list {
+	.detail-body {
 		display: flex;
 		flex-direction: column;
 	}
 
-	.list-row {
-		display: flex;
-		gap: 16px;
-		padding: 8px 0;
-		font-family: var(--font-serif);
-		font-size: 15px;
-		border-top: 1px solid var(--color-structural);
-	}
-
-	.list-row:last-child {
-		border-bottom: 1px solid var(--color-structural);
-	}
-
-	.list-year {
-		width: 60px;
-		flex-shrink: 0;
-		font-family: var(--font-mono);
-		font-size: 11px;
-		color: var(--color-muted);
-		padding-top: 3px;
-	}
-
-	@media (max-width: 768px) {
-		.about-page {
-			padding: 100px 16px 100px;
+	/* ── Split layout ──
+	   Gated at 1152px: below this the column's right edge (50vw + 26rem)
+	   would cross the nav's left edge (100vw − 146px). At ≥1152px the text
+	   measure clears the nav with room to spare, so they never overlap. */
+	@media (min-width: 1152px) {
+		.portrait {
+			position: fixed;
+			top: 0;
+			left: 0;
+			width: 50vw;
+			height: 100vh;
+			z-index: 50;
 		}
 
-		.about-grid {
-			grid-template-columns: 1fr;
-			gap: 40px;
-			margin-bottom: 80px;
+		.portrait-img {
+			width: 100%;
+			height: 100%;
 		}
 
-		.manifesto {
-			font-size: 16px;
+		/* Wordmark drops to the datum, over the image. */
+		.wordmark {
+			top: 50%;
+			transform: translateY(-50%);
 		}
 
-		.manifesto-lead {
-			font-size: 19px;
+		.nav-right {
+			top: 50%;
+			left: auto;
+			right: 16px;
+			transform: translateY(-50%);
 		}
 
-		.section {
-			margin-bottom: 60px;
+		.about {
+			position: relative;
+			z-index: 60;
 		}
 
-		.contact-row,
-		.list-row {
-			font-size: 14px;
+		/* Text reads in the right half, left-aligned to the image edge.
+		   26rem measure keeps the right edge clear of the fixed nav. */
+		.column {
+			max-width: 26rem;
+			margin: 0;
+			margin-left: 50vw;
+			padding: 22vh 48px 18vh 48px;
 		}
 	}
 </style>

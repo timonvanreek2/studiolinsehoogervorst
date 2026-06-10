@@ -1,10 +1,14 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { afterNavigate, goto } from '$app/navigation';
 
 	let { data } = $props();
 	let project = $derived(data.project);
 
-	let images = $derived.by(() => {
+	type Slide = { kind: 'image'; url: string } | { kind: 'description' };
+
+	let slides = $derived.by(() => {
+		const result: Slide[] = [];
 		const urls: string[] = [];
 		if (project.image) urls.push(project.image);
 		if (project.gallery) {
@@ -14,47 +18,38 @@
 				}
 			}
 		}
-		return urls;
-	});
-
-	let startIndex = $derived(parseInt(page.url.searchParams.get('img') || '0', 10));
-	let currentIndex = $state(0);
-	let track: HTMLDivElement;
-
-	$effect(() => {
-		currentIndex = Math.min(startIndex, images.length - 1);
-	});
-
-	$effect(() => {
-		if (!track) return;
-		const slide = track.children[currentIndex] as HTMLElement;
-		if (slide) {
-			slide.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+		if (urls.length > 0) result.push({ kind: 'image', url: urls[0] });
+		if (project.description?.length) result.push({ kind: 'description' });
+		for (let i = 1; i < urls.length; i++) {
+			result.push({ kind: 'image', url: urls[i] });
 		}
+		return result;
+	});
+
+	let currentIndex = $state(0);
+
+	$effect(() => {
+		const start = parseInt(page.url.searchParams.get('img') || '0', 10);
+		currentIndex = Math.min(start, slides.length - 1);
 	});
 
 	function next() {
-		if (images.length > 0) currentIndex = (currentIndex + 1) % images.length;
+		if (slides.length > 0) currentIndex = (currentIndex + 1) % slides.length;
 	}
 
 	function prev() {
-		if (images.length > 0) currentIndex = (currentIndex - 1 + images.length) % images.length;
+		if (slides.length > 0) currentIndex = (currentIndex - 1 + slides.length) % slides.length;
 	}
 
-	let infoOpen = $state(false);
-	let descriptionEl = $state<HTMLElement | null>(null);
+	let hasInternalReferrer = false;
 
-	function toggleInfo() {
-		infoOpen = !infoOpen;
-		if (infoOpen) {
-			requestAnimationFrame(() => {
-				descriptionEl?.scrollIntoView({ behavior: 'smooth' });
-			});
-		}
-	}
+	afterNavigate((navigation) => {
+		if (navigation.from) hasInternalReferrer = true;
+	});
 
 	function close() {
-		history.back();
+		if (hasInternalReferrer) history.back();
+		else goto('/');
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
@@ -62,281 +57,377 @@
 		if (e.key === 'ArrowRight') next();
 		if (e.key === 'ArrowLeft') prev();
 	}
+
+	let cursorSide = $state<'left' | 'right' | null>(null);
+
+	function handleMouseMove(e: MouseEvent) {
+		cursorSide = e.clientX < window.innerWidth / 2 ? 'left' : 'right';
+	}
+
+	function handleClick(e: MouseEvent) {
+		if (justSwiped) return;
+		const el = e.target as HTMLElement;
+		if (el.closest('button, a')) return;
+		if (e.clientX < window.innerWidth / 2) prev();
+		else next();
+	}
+
+	// Touch swipe: a gesture trigger only — the crossfade design doesn't translate,
+	// so we never drag the slide with the finger.
+	let isDragging = false;
+	let dragPointerId: number | null = null;
+	let dragStartX = 0;
+	let dragStartY = 0;
+	let dragStartTime = 0;
+	let dragLastX = 0;
+	let dragLastY = 0;
+	let justSwiped = false;
+
+	function handlePointerDown(e: PointerEvent) {
+		if (e.pointerType !== 'touch') return;
+		if (isDragging) return; // ignore additional touch points
+		isDragging = true;
+		dragPointerId = e.pointerId;
+		dragStartX = e.clientX;
+		dragStartY = e.clientY;
+		dragLastX = e.clientX;
+		dragLastY = e.clientY;
+		dragStartTime = e.timeStamp;
+	}
+
+	function handlePointerMove(e: PointerEvent) {
+		if (!isDragging || e.pointerId !== dragPointerId) return;
+		dragLastX = e.clientX;
+		dragLastY = e.clientY;
+	}
+
+	function handlePointerUp(e: PointerEvent) {
+		if (!isDragging || e.pointerId !== dragPointerId) return;
+		isDragging = false;
+		dragPointerId = null;
+		const deltaX = dragLastX - dragStartX;
+		const deltaY = dragLastY - dragStartY;
+		if (Math.abs(deltaX) <= Math.abs(deltaY)) return; // horizontal must dominate
+		const elapsedMs = e.timeStamp - dragStartTime;
+		const velocity = elapsedMs > 0 ? Math.abs(deltaX) / elapsedMs : 0;
+		if (Math.abs(deltaX) >= 60 || velocity > 0.11) {
+			justSwiped = true;
+			if (deltaX < 0) next();
+			else prev();
+			setTimeout(() => {
+				justSwiped = false;
+			}, 0);
+		}
+	}
+
+	function handlePointerCancel(e: PointerEvent) {
+		if (e.pointerId !== dragPointerId) return;
+		isDragging = false;
+		dragPointerId = null;
+	}
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
 <svelte:head>
 	<title>{project.title} — Studio Linse Hoogervorst</title>
+	<meta property="og:title" content="{project.title} — Studio Linse Hoogervorst" />
+	{#if project.location}<meta property="og:description" content="{project.location}" />{/if}
+	{#if project.image}<meta property="og:image" content="{project.image}" />{/if}
 </svelte:head>
 
-<div class="modal" class:info-open={infoOpen}>
+<h1 class="sr-only">{project.title} — Studio Linse Hoogervorst</h1>
 
-	<!-- Horizontal image strip -->
-	<div class="image-area">
-		{#if images.length > 1}
-			<button class="nav-prev" onclick={prev} aria-label="Previous"></button>
-			<button class="nav-next" onclick={next} aria-label="Next"></button>
-		{/if}
-
-		<div class="track" bind:this={track}>
-			{#each images as url, i}
-				<div class="slide" class:active={i === currentIndex}>
-					<img
-						src="{url}?w=2400&auto=format&q=85"
-						alt={project.title}
-						loading={Math.abs(i - currentIndex) < 3 ? 'eager' : 'lazy'}
-					/>
-				</div>
-			{/each}
+<div
+	class="detail-page"
+	class:cursor-left={cursorSide === 'left'}
+	class:cursor-right={cursorSide === 'right'}
+	onmousemove={handleMouseMove}
+	onclick={handleClick}
+	role="presentation"
+>
+	<div class="top-bar">
+		<div class="meta-group">
+			<span class="meta-title">{project.title}</span>
+			{#if project.location}<span class="meta-detail">{project.location}</span>{/if}
 		</div>
-	</div>
-
-	<!-- Info bar -->
-	<div class="info-bar">
-		<div class="info-left">
-			<span class="info-title">{project.title}</span>
-			<span class="info-location">{project.location}</span>
+		<div class="meta-group">
+			{#if project.category}
+				<span class="meta-title">{project.category.replace('-', ' & ').replace(/\b\w/g, (c) => c.toUpperCase())}</span>
+			{/if}
+			{#if project.completion}<span class="meta-detail">Completed in {project.completion}</span>{/if}
 		</div>
-		<div class="info-right">
-			{#if project.category}<span class="info-category">{project.category}</span>{/if}
-			{#if project.completion}<span>(  {project.completion}  )</span>{/if}
-			<span class="info-counter">{currentIndex + 1} / {images.length}</span>
-			{#if project.description?.length}
-				<button class="info-btn" onclick={toggleInfo}>{infoOpen ? 'Close' : 'Info'}</button>
+		<div class="meta-group">
+			{#if project.photographer}
+				<span class="meta-title">Photography by</span>
+				<span class="meta-detail">{project.photographer}</span>
 			{/if}
 		</div>
+		<div class="meta-group right">
+			<button class="close-btn" onclick={close}>Close</button>
+		</div>
 	</div>
 
-	<!-- Description panel -->
-	{#if infoOpen && project.description?.length}
-		<div class="description-panel" bind:this={descriptionEl}>
-			<div class="description-content">
-				<div class="description-meta">
-					<span class="info-title">{project.title}</span>
-					<span class="info-location">{project.location}</span>
-					{#if project.category}<span class="info-category">{project.category}</span>{/if}
-					{#if project.completion}<span>(  {project.completion}  )</span>{/if}
-				</div>
-				<div class="description-text">
+	<div
+		class="image-area"
+		onpointerdown={handlePointerDown}
+		onpointermove={handlePointerMove}
+		onpointerup={handlePointerUp}
+		onpointercancel={handlePointerCancel}
+		role="presentation"
+	>
+		{#each slides as slide, i}
+			{#if slide.kind === 'image'}
+				<img
+					class="gallery-img"
+					class:active={i === currentIndex}
+					src="{slide.url}?w=2400&auto=format&q=85"
+					srcset="{slide.url}?w=800&auto=format&q=85 800w, {slide.url}?w=1600&auto=format&q=85 1600w, {slide.url}?w=2400&auto=format&q=85 2400w"
+					sizes="(max-width: 768px) calc(100vw - 16px), (max-width: 1024px) calc(100vw - 80px), calc(100vw - 360px)"
+					alt="{project.title} — image {i + 1}"
+					loading={Math.abs(i - currentIndex) < 3 ? 'eager' : 'lazy'}
+				/>
+			{:else}
+				<div class="description-slide" class:active={i === currentIndex}>
 					{#each project.description as paragraph}
 						<p>{paragraph}</p>
 					{/each}
 				</div>
-			</div>
-		</div>
-	{/if}
+			{/if}
+		{/each}
+	</div>
 
-	<button class="close-btn" onclick={close}>Close</button>
+	<div class="counter" aria-live="polite">{currentIndex + 1} / {slides.length}</div>
+
+	<button class="nav-btn nav-btn--prev" aria-label="Previous image" onclick={prev}>‹</button>
+	<button class="nav-btn nav-btn--next" aria-label="Next image" onclick={next}>›</button>
 </div>
 
 <style>
-	.modal {
+	.detail-page {
 		position: fixed;
 		inset: 0;
 		background: #fff;
 		z-index: 200;
-		display: flex;
-		flex-direction: column;
 		overflow: hidden;
 	}
 
-	.modal.info-open {
-		overflow-y: auto;
+	.detail-page.cursor-left {
+		cursor: w-resize;
 	}
 
-	.modal.info-open .image-area {
-		flex-shrink: 0;
+	.detail-page.cursor-right {
+		cursor: e-resize;
+	}
+
+	.top-bar {
+		position: relative;
+		z-index: 10;
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		padding: 16px 16px 12px;
+		font-family: var(--font-sans);
+		font-size: 13px;
+		font-weight: 500;
+		line-height: 1.4;
+		color: var(--color-primary);
+	}
+
+	.meta-group {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		flex: 1;
+	}
+
+	.meta-group.right {
+		text-align: right;
+	}
+
+	.meta-title {
+		font-weight: 550;
+	}
+
+	.meta-detail {
+		font-weight: 500;
 	}
 
 	.close-btn {
-		position: fixed;
-		top: 12px;
-		right: 16px;
-		z-index: 210;
 		background: none;
 		border: none;
 		font-family: var(--font-sans);
-		font-weight: 500;
-		font-size: 14px;
+		font-size: 13px;
+		font-weight: 550;
 		color: var(--color-primary);
 		cursor: pointer;
-		padding: 4px 0;
+		padding: 0;
 		transition: opacity 0.15s;
+		line-height: 1.4;
+		text-align: right;
 	}
 
 	.close-btn:hover {
 		opacity: 0.5;
 	}
 
-	/* Image area */
 	.image-area {
-		flex: 1;
-		position: relative;
-		overflow: hidden;
-		padding-top: 48px;
-	}
-
-	.track {
-		display: flex;
-		align-items: center;
-		gap: 16px;
-		height: 100%;
-		overflow-x: auto;
-		scroll-snap-type: x mandatory;
-		scrollbar-width: none;
-		padding: 0 16px;
-	}
-
-	.track::-webkit-scrollbar {
-		display: none;
-	}
-
-	.slide {
-		flex-shrink: 0;
-		height: 100%;
-		display: flex;
-		align-items: center;
-		scroll-snap-align: center;
-	}
-
-	.slide img {
-		max-height: 100%;
-		width: auto;
-		object-fit: contain;
-	}
-
-	.nav-prev,
-	.nav-next {
 		position: absolute;
-		top: 0;
-		bottom: 0;
-		width: 50%;
-		background: none;
-		border: none;
-		z-index: 1;
+		inset: 0;
+		margin: 0 180px;
+		overflow: hidden;
+		touch-action: pan-y;
 	}
 
-	.nav-prev {
+	.gallery-img {
+		position: absolute;
+		top: 50%;
 		left: 0;
-		cursor: w-resize;
-	}
-
-	.nav-next {
 		right: 0;
-		cursor: e-resize;
+		transform: translateY(-50%);
+		width: 100%;
+		max-height: 80vh;
+		object-fit: contain;
+		opacity: 0;
+		transition: opacity 0.15s ease-out;
 	}
 
-	/* Info bar */
-	.info-bar {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 12px 16px;
+	.gallery-img.active {
+		opacity: 1;
+		transition: opacity 0.25s cubic-bezier(0.23, 1, 0.32, 1);
+	}
+
+	.description-slide {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		width: 100%;
+		max-width: 480px;
+		opacity: 0;
+		transition: opacity 0.15s ease-out;
 		font-family: var(--font-sans);
+		font-size: 13px;
 		font-weight: 500;
-		font-size: 12px;
-		line-height: 16px;
-		color: var(--color-primary);
-		flex-shrink: 0;
-	}
-
-	.info-left,
-	.info-right {
-		display: flex;
-		align-items: center;
-		gap: 16px;
-	}
-
-	.info-location,
-	.info-counter {
-		color: var(--color-muted);
-	}
-
-	.info-category {
-		text-transform: capitalize;
-	}
-
-	.info-btn {
-		background: none;
-		border: none;
-		font: inherit;
-		color: var(--color-primary);
-		cursor: pointer;
-		padding: 0;
-		transition: opacity 0.15s;
-	}
-
-	.info-btn:hover {
-		opacity: 0.5;
-	}
-
-	.description-panel {
-		flex-shrink: 0;
-		padding: 60px 16px 120px;
-		font-family: var(--font-sans);
-		font-weight: 500;
-		font-size: 14px;
-		line-height: 1.5;
+		line-height: 1.6;
 		color: var(--color-primary);
 	}
 
-	.description-content {
-		max-width: 640px;
+	.description-slide.active {
+		opacity: 1;
+		transition: opacity 0.25s cubic-bezier(0.23, 1, 0.32, 1);
 	}
 
-	.description-meta {
-		display: flex;
-		gap: 16px;
-		margin-bottom: 40px;
-		font-size: 12px;
-		line-height: 16px;
-	}
-
-	.description-text p {
+	.description-slide p {
 		margin: 0;
+		text-indent: 1.5em;
 	}
 
-	.description-text p + p {
-		margin-top: 1em;
+	.description-slide p:first-child {
+		text-indent: 0;
+	}
+
+	.description-slide p + p {
+		margin-top: 0.3em;
+	}
+
+	.counter {
+		position: absolute;
+		bottom: 16px;
+		right: 16px;
+		font-family: var(--font-sans);
+		font-size: 13px;
+		font-weight: 500;
+		color: var(--color-muted, #999);
+	}
+
+	@media (max-width: 1024px) {
+		.image-area {
+			margin: 0 40px;
+		}
 	}
 
 	@media (max-width: 768px) {
-		.track {
-			padding: 0;
-			gap: 0;
+		.top-bar {
+			display: grid;
+			grid-template-columns: 1fr auto;
+			gap: 10px 24px;
+			padding: 12px 16px;
 		}
 
-		.slide {
-			width: 100vw;
-			justify-content: center;
+		.meta-group:nth-child(1) {
+			grid-row: 1;
+			grid-column: 1;
 		}
 
-		.slide img {
-			width: 100%;
-			max-height: 100%;
-			object-fit: contain;
+		.meta-group:nth-child(2) {
+			grid-row: 2;
+			grid-column: 1;
 		}
 
-		.info-bar {
-			padding: 12px 8px;
+		.meta-group:nth-child(3) {
+			grid-row: 2;
+			grid-column: 2;
+			text-align: right;
 		}
 
-		.info-location,
-		.info-category {
-			display: none;
+		.meta-group.right {
+			grid-row: 1;
+			grid-column: 2;
 		}
 
-		.info-right {
-			gap: 8px;
+		.image-area {
+			margin: 0 8px;
 		}
+	}
 
-		.description-panel {
-			padding: 40px 8px 80px;
-		}
+	/* Prev/next nav buttons — visually hidden but fully focusable.
+	   They surface for keyboard users and screen readers while leaving
+	   the mouse-click-zone design entirely intact. */
+	.nav-btn {
+		position: absolute;
+		bottom: 16px;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		overflow: hidden;
+		clip: rect(0 0 0 0);
+		white-space: nowrap;
+		border: 0;
+		background: none;
+		cursor: pointer;
+	}
 
-		.description-meta {
-			flex-direction: column;
-			gap: 4px;
+	.nav-btn--prev {
+		left: 16px;
+	}
+
+	.nav-btn--next {
+		right: 48px;
+	}
+
+	.nav-btn:focus-visible {
+		/* Expand to a visible, tappable target on focus */
+		width: auto;
+		height: auto;
+		clip: auto;
+		overflow: visible;
+		white-space: normal;
+		padding: 4px 8px;
+		font-family: var(--font-sans);
+		font-size: 13px;
+		font-weight: 550;
+		color: var(--color-primary);
+		outline: 1px solid currentColor;
+		outline-offset: 2px;
+		border-radius: 2px;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.gallery-img,
+		.gallery-img.active,
+		.description-slide,
+		.description-slide.active {
+			transition: opacity 0.1s ease;
 		}
 	}
 </style>

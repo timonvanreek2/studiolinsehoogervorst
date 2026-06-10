@@ -8,55 +8,19 @@
 }
 
 @font-face {
-	font-family: 'Office Times Sharp Mono';
-	src: url('/fonts/OfficeTimesSharp-RegularMono.otf') format('opentype');
-	font-weight: 400;
-	font-display: swap;
-}
-
-@font-face {
 	font-family: 'ABC Diatype';
 	src: url('/fonts/ABCDiatypeVariable-Trial.ttf') format('truetype');
 	font-weight: 100 900;
 	font-display: swap;
 }
 
-@font-face {
-	font-family: 'HAL Timezone';
-	src: url('/fonts/HALTimezoneUnlicensed-Regular.otf') format('opentype');
-	font-weight: 400;
-	font-display: swap;
-}
-
-@font-face {
-	font-family: 'HAL Timezone';
-	src: url('/fonts/HALTimezoneUnlicensed-Light.otf') format('opentype');
-	font-weight: 300;
-	font-display: swap;
-}
-
-@font-face {
-	font-family: 'HAL Timezone Mono';
-	src: url('/fonts/HALTimezoneMonoUnlicensed-Regular.otf') format('opentype');
-	font-weight: 400;
-	font-display: swap;
-}
-
-@font-face {
-	font-family: 'HAL Timezone Mono';
-	src: url('/fonts/HALTimezoneMonoUnlicensed-Light.otf') format('opentype');
-	font-weight: 300;
-	font-display: swap;
-}
-
 @theme {
 	--color-primary: #000000;
-	--color-muted: #999999;
+	--color-muted: #767676;
 	--color-structural: #E0E0E0;
 	--color-bg: #FFFFFF;
 
 	--font-serif: 'Office Times Sharp', Georgia, serif;
-	--font-mono: 'Office Times Sharp Mono', ui-monospace, monospace;
 	--font-sans: 'ABC Diatype', system-ui, sans-serif;
 }
 
@@ -92,3 +56,5 @@ a {
 img {
 	display: block;
 }
+
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}

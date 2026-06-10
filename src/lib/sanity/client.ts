@@ -18,7 +18,3 @@ export const client = {
 		return json.result;
 	}
 };
-
-export function imageUrl(_source: any) {
-	return { url: () => '' };
-}

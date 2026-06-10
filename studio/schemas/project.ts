@@ -1,4 +1,5 @@
 import { defineType, defineField } from 'sanity';
+import GalleryPreviewInput from '../components/GalleryPreviewInput';
 
 export default defineType({
 	name: 'project',
@@ -43,6 +44,7 @@ export default defineType({
 			name: 'gallery',
 			title: 'Gallery',
 			type: 'array',
+			components: { input: GalleryPreviewInput },
 			of: [{
 				type: 'image',
 				options: { hotspot: true },
@@ -65,6 +67,13 @@ export default defineType({
 					}),
 				],
 			}],
+		}),
+		defineField({
+			name: 'featuredImages',
+			title: 'Featured Images (homepage grid)',
+			description: 'Cropped images shown in the homepage grid cluster for this project. 1–4 images, ordered.',
+			type: 'array',
+			of: [{ type: 'image', options: { hotspot: true } }],
 		}),
 		defineField({ name: 'heroColor', title: 'Hero Color (fallback)', type: 'string' }),
 		defineField({ name: 'featured', title: 'Featured', type: 'boolean' }),

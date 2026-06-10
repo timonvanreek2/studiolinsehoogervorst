@@ -1,60 +1,126 @@
 <script lang="ts">
 	import '../app.css';
 	import { page } from '$app/state';
+	import Monogram from '$lib/components/Monogram.svelte';
+	import Footer from '$lib/components/Footer.svelte';
 
 	let { children } = $props();
 	let isToolPage = $derived(page.url.pathname.startsWith('/tools/'));
 	let isRichon = $derived(page.url.pathname.startsWith('/richon'));
 	let isStudio = $derived(page.url.pathname.startsWith('/studio'));
 	let isV2 = $derived(page.url.pathname.startsWith('/v2'));
+	let isHome = $derived(page.url.pathname === '/');
+	let showChrome = $derived(!isToolPage && !isRichon && !isStudio && !isV2);
+
+	let path = $derived(page.url.pathname);
+	let isSelected = $derived(path === '/');
+	let isIndex = $derived(path.startsWith('/projects'));
+	let isAbout = $derived(path.startsWith('/about'));
+
+	let isProjectsIndex = $derived(path === '/projects');
+	let showNav = $derived(showChrome && !isHome && !isAbout && !isProjectsIndex);
+
+	let menuOpen = $state(false);
 </script>
 
-{#if !isToolPage && !isRichon && !isStudio && !isV2}
-	<nav class="site-nav">
-		<a href="/" class="nav-name">Studio&nbsp;&nbsp;Linse Hoogervorst</a>
+{#if showNav}
+	<nav class="site-nav" class:open={menuOpen}>
+		<button class="menu-toggle" onclick={() => (menuOpen = !menuOpen)}>
+			{menuOpen ? 'Close' : 'Menu'}
+		</button>
 		<div class="nav-links">
-			<a href="/index" class="nav-link">Index</a>
-			<a href="/about" class="nav-link">About</a>
+			<a href="/" class="nav-link" class:selected={isSelected} onclick={() => (menuOpen = false)}>Selected</a><span
+				class="sep">,&nbsp;</span
+			><a href="/projects" class="nav-link" class:selected={isIndex} onclick={() => (menuOpen = false)}>Index</a><span
+				class="sep">,&nbsp;</span
+			><a href="/about" class="nav-link" class:selected={isAbout} onclick={() => (menuOpen = false)}>About</a>
 		</div>
 	</nav>
 {/if}
 
-{@render children()}
+<div class="page-shell">
+	{#if showNav}
+		<Monogram />
+	{/if}
+	{@render children()}
+</div>
+
+{#if showChrome}
+	<Footer />
+{/if}
 
 <style>
+	.page-shell {
+		position: relative;
+	}
+
 	.site-nav {
 		position: fixed;
-		top: 0;
-		left: 0;
-		right: 0;
-		display: flex;
-		justify-content: space-between;
-		align-items: baseline;
-		padding: 12px 16px;
+		top: 8px;
+		left: 8px;
 		z-index: 100;
+		font-family: var(--font-sans);
+		font-size: 13px;
+		font-weight: 550;
+		line-height: 1;
 		color: var(--color-primary);
 	}
 
-	.nav-name {
-		font-family: var(--font-serif);
-		font-size: 14px;
-		line-height: 17px;
-		text-transform: uppercase;
-		white-space: pre;
+	.nav-link.selected {
+		font-style: italic;
 	}
 
-	.nav-links {
-		display: flex;
-		gap: 16px;
-		font-family: var(--font-sans);
-		font-weight: 500;
-		font-size: 14px;
-		line-height: 17px;
+	.nav-link {
+		transition: opacity 0.15s;
+	}
+
+	.nav-link:hover {
+		opacity: 0.5;
+	}
+
+	.sep {
+		font-style: normal;
+	}
+
+	.menu-toggle {
+		display: none;
 	}
 
 	@media (max-width: 768px) {
 		.site-nav {
-			padding: 12px 16px;
+			left: 8px;
+			font-size: 13px;
+		}
+
+		.menu-toggle {
+			display: block;
+			background: none;
+			border: none;
+			padding: 0;
+			font-family: var(--font-sans);
+			font-size: 13px;
+			font-weight: 550;
+			color: var(--color-primary);
+			cursor: pointer;
+			line-height: 1;
+		}
+
+		.nav-links {
+			display: none;
+		}
+
+		.site-nav.open .menu-toggle {
+			margin-bottom: 12px;
+		}
+
+		.site-nav.open .nav-links {
+			display: flex;
+			flex-direction: column;
+			gap: 10px;
+		}
+
+		.site-nav.open .sep {
+			display: none;
 		}
 	}
 </style>
