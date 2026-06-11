@@ -1,10 +1,7 @@
 export type Category = 'hospitality' | 'cultural' | 'corporate-retail' | 'residential';
 
-export type GallerySize = 'auto' | 'full' | 'half' | 'offset-left' | 'offset-right' | 'small';
-
 export interface GalleryImage {
 	url: string;
-	size: GallerySize;
 }
 
 export interface Project {
@@ -12,16 +9,14 @@ export interface Project {
 	title: string;
 	location: string;
 	category: Category;
-	categories?: Category[];
 	photographer?: string;
 	completion?: string;
 	description: string[];
 	image: string;
 	gallery: GalleryImage[];
-	featuredImages?: string[];
-	heroColor: string;
 	sections: EditorialSection[];
 	featured?: boolean;
+	isHero?: boolean;
 }
 
 export type EditorialSection =

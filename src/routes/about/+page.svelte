@@ -1,18 +1,27 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import Wordmark from '$lib/components/Wordmark.svelte';
+	import MobileMenu from '$lib/components/MobileMenu.svelte';
 
 	let { data } = $props();
 
 	let path = $derived(page.url.pathname);
 	let isAbout = $derived(path.startsWith('/about'));
 
-	let image = $derived(data.studio?.image ?? null);
+	let menuOpen = $state(false);
 
-	// The source studio image is 1920px wide; offer up to that for the
-	// 50vw full-height panel on large screens (50vw of a 1440 display ≈ 720px,
-	// 2× for retina ≈ 1440), and a full-width crop below the split breakpoint.
-	function imageSrcset(url: string): string {
-		return [800, 1200, 1600, 1920].map((w) => `${url}?w=${w}&auto=format&q=85 ${w}w`).join(', ');
+	let portraitOne = $derived(data.studio?.portraitOne ?? null);
+	let portraitTwo = $derived(data.studio?.portraitTwo ?? null);
+	let hasPortraits = $derived(!!(portraitOne || portraitTwo));
+
+	// Portraits are cropped to 4:5 around the Sanity hotspot.
+	function portraitSrcset(url: string): string {
+		return [300, 460, 600, 760]
+			.map((w) => `${url}?w=${w}&h=${Math.round(w * 1.25)}&fit=crop&auto=format&q=85 ${w}w`)
+			.join(', ');
+	}
+	function portraitSrc(url: string): string {
+		return `${url}?w=460&h=575&fit=crop&auto=format&q=85`;
 	}
 </script>
 
@@ -24,36 +33,51 @@
 
 <h1 class="sr-only">About — Studio Linse Hoogervorst</h1>
 
-<a href="/" class="wordmark"><img src="/wordmark.svg" alt="Studio Linse Hoogervorst" class="wordmark-img" /></a>
+<a href="/" class="wordmark" aria-label="Studio Linse Hoogervorst">
+	<Wordmark progress={1} />
+</a>
 
 <nav class="nav-right">
-	<a href="/" class="nav-link">Selected</a><span class="sep">,&nbsp;</span><a href="/projects" class="nav-link">Index</a><span class="sep">,&nbsp;</span><a href="/about" class="nav-link" class:selected={isAbout}>About</a>
+	<button class="menu-toggle" onclick={() => (menuOpen = true)}>Menu</button>
+	<div class="nav-links">
+		<a href="/" class="nav-link">Selected</a><span class="sep">,&nbsp;</span><a href="/projects" class="nav-link">Index</a><span class="sep">,&nbsp;</span><a href="/about" class="nav-link" class:selected={isAbout}>About</a>
+	</div>
 </nav>
 
-<main class="about">
-	{#if image}
-		<div class="portrait">
-			<img
-				class="portrait-img"
-				src="{image}?w=1600&auto=format&q=85"
-				srcset={imageSrcset(image)}
-				sizes="(min-width: 1152px) 50vw, 100vw"
-				alt="Studio Linse Hoogervorst"
-				fetchpriority="high"
-			/>
+<MobileMenu bind:open={menuOpen} />
+
+<main class="about" class:has-portraits={hasPortraits}>
+	{#if hasPortraits}
+		<div class="portraits">
+			{#if portraitOne}
+				<img
+					class="portrait"
+					src={portraitSrc(portraitOne)}
+					srcset={portraitSrcset(portraitOne)}
+					sizes="(min-width: 1152px) 228px, 45vw"
+					alt="Studio Linse Hoogervorst"
+				/>
+			{/if}
+			{#if portraitTwo}
+				<img
+					class="portrait"
+					src={portraitSrc(portraitTwo)}
+					srcset={portraitSrcset(portraitTwo)}
+					sizes="(min-width: 1152px) 228px, 45vw"
+					alt="Studio Linse Hoogervorst"
+				/>
+			{/if}
 		</div>
 	{/if}
 
 	<div class="column">
-		<div class="bio">
-			<!-- Founding year intentionally omitted: this lead said 1993 while the Sanity aboutText says 1999 — resolve the discrepancy in Sanity, then reconsider stating it here. -->
-			<p class="lead">Studio Linse Hoogervorst is a practice for interior architecture, founded by Paul Linse in Amsterdam.</p>
-			{#if data.studio?.aboutText}
+		{#if data.studio?.aboutText}
+			<div class="bio">
 				{#each data.studio.aboutText.split('\n\n') as paragraph}
 					<p>{paragraph}</p>
 				{/each}
-			{/if}
-		</div>
+			</div>
+		{/if}
 
 		<div class="contact">
 			{#if data.studio?.contactEmail}
@@ -112,22 +136,23 @@
 
 <style>
 	/* ─────────────────────────────────────────────────────────────
-	   About — the portrait split.
+	   About — two portraits on the datum.
 
-	   On wide screens the studio image is fixed to the left half and runs
-	   the full height of the viewport, so the site-wide datum (the fixed
-	   wordmark + nav at 50vh) crosses it. The wide wordmark hangs over the
-	   image and inverts through mix-blend exclusion — the same gesture as
-	   the home hero, which is what makes About belong to the rest of the
-	   site instead of floating off as a centred column. The text reads in
-	   the right half; only the narrow nav threads over it.
+	   On wide screens the two founder portraits sit centred as a pair,
+	   their vertical middle resting on the site-wide datum (50vh), with the
+	   wordmark and nav flanking on the same horizontal line — the datum
+	   becomes a shelf carrying name, faces, and nav across the page. The
+	   bio (driven entirely by Sanity, no hard-coded copy) reads in a centred
+	   column below.
 
-	   Below 1152px there isn't room for the wordmark, a text measure, and
-	   the image side by side, so the layout stacks: image on top, text
-	   below, chrome anchored to the top corners.
+	   Below 1152px the wide wordmark can't share the datum line with the
+	   centred portraits, so the layout stacks: chrome anchors to the top-left
+	   corner (wordmark, then nav beneath it), portraits sit side by side, bio
+	   below.
 	   ───────────────────────────────────────────────────────────── */
 
-	/* Datum chrome — shared with the rest of the site. */
+	/* Datum chrome — shared with the rest of the site. The mark here is the
+	   resting S/L/H monogram (progress 1); hovering it types the full name. */
 	.wordmark {
 		position: fixed;
 		top: 24px;
@@ -135,9 +160,9 @@
 		z-index: 200;
 		display: flex;
 		align-items: center;
-		/* Legible fallback for browsers without mix-blend-mode support */
+		--mark-w: 110px;
+		--mark-h: 43px;
 		color: #000;
-		transition: opacity 0.15s ease-out;
 	}
 
 	@supports (mix-blend-mode: exclusion) {
@@ -147,30 +172,20 @@
 		}
 	}
 
-	.wordmark:hover {
-		opacity: 0.5;
-	}
-
-	.wordmark-img {
-		height: 16px;
-		width: auto;
-		display: block;
-	}
-
-	/* Below the split breakpoint the 291px-wide wordmark + nav can't share a
-	   line on a phone, so the nav stacks directly under the wordmark as a
-	   logo-and-nav lockup over the top of the image. */
+	/* Stacked mobile chrome: nav sits under the 43px-tall monogram. */
 	.nav-right {
 		position: fixed;
-		top: 50px;
+		top: 77px;
 		left: 16px;
 		right: auto;
 		z-index: 200;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
 		font-family: var(--font-sans);
 		font-size: 13px;
 		font-weight: 550;
 		line-height: 1;
-		/* Legible fallback for browsers without mix-blend-mode support */
 		color: #000;
 	}
 
@@ -179,6 +194,11 @@
 			color: #fff;
 			mix-blend-mode: exclusion;
 		}
+	}
+
+	.nav-links {
+		display: flex;
+		align-items: baseline;
 	}
 
 	.nav-link {
@@ -198,13 +218,14 @@
 		font-style: normal;
 	}
 
-	/* Stacked (mobile / tablet) layout — image first, text below. */
-	.portrait-img {
-		width: 100%;
-		height: 56vh;
-		object-fit: cover;
-		object-position: center;
-		display: block;
+	.menu-toggle {
+		display: none;
+		background: none;
+		border: none;
+		padding: 0;
+		font: inherit;
+		cursor: pointer;
+		color: inherit;
 	}
 
 	.about {
@@ -215,10 +236,34 @@
 		color: var(--color-primary);
 	}
 
-	.column {
-		max-width: 32rem;
+	/* Stacked (mobile / tablet) defaults — content clears the taller
+	   monogram chrome (nav bottom ≈ 90px). */
+	.portraits {
+		display: flex;
+		gap: 12px;
+		max-width: 22rem;
 		margin: 0 auto;
-		padding: 48px 16px 100px;
+		padding: 90px 16px 0;
+		box-sizing: border-box;
+	}
+
+	.about:not(.has-portraits) .column {
+		padding-top: 90px;
+	}
+
+	.portrait {
+		flex: 1 1 0;
+		min-width: 0;
+		aspect-ratio: 4 / 5;
+		object-fit: cover;
+		display: block;
+	}
+
+	.column {
+		max-width: 22rem;
+		margin: 0 auto;
+		padding: 40px 16px 96px;
+		box-sizing: border-box;
 	}
 
 	/* Paragraph breaks marked by space, not indent (never both). */
@@ -284,29 +329,57 @@
 		flex-direction: column;
 	}
 
-	/* ── Split layout ──
-	   Gated at 1152px: below this the column's right edge (50vw + 26rem)
-	   would cross the nav's left edge (100vw − 146px). At ≥1152px the text
-	   measure clears the nav with room to spare, so they never overlap. */
+	/* ── Mobile nav ──
+	   On narrow screens the wordmark grows and moves to top-left; the nav
+	   moves to top-right and collapses behind a Menu toggle. */
+	@media (max-width: 768px) {
+		.wordmark {
+			top: 16px;
+			--mark-w: 140px;
+			--mark-h: 54px;
+		}
+
+		.nav-right {
+			top: 16px;
+			left: auto;
+			right: 16px;
+			align-items: flex-end;
+		}
+
+		.menu-toggle {
+			display: block;
+		}
+
+		.nav-links {
+			display: none;
+		}
+
+		/* Left-align to the shared 16px page margin instead of a centred narrow
+		   column, so About lines up with every other page. */
+		.portraits,
+		.column {
+			max-width: none;
+			margin-left: 0;
+			margin-right: 0;
+		}
+
+		/* The space above the footer is owned by the footer, so the bio column
+		   doesn't add its own bottom padding on mobile. */
+		.column {
+			padding-bottom: 0;
+		}
+	}
+
+	/* ── Datum layout (wide screens) ──
+	   Gated at 1152px so the centred portrait pair clears the fixed wordmark
+	   on the left and the nav on the right. */
 	@media (min-width: 1152px) {
-		.portrait {
-			position: fixed;
-			top: 0;
-			left: 0;
-			width: 50vw;
-			height: 100vh;
-			z-index: 50;
-		}
-
-		.portrait-img {
-			width: 100%;
-			height: 100%;
-		}
-
-		/* Wordmark drops to the datum, over the image. */
+		/* Chrome drops to the datum line. */
 		.wordmark {
 			top: 50%;
 			transform: translateY(-50%);
+			--mark-w: 160px;
+			--mark-h: 62px;
 		}
 
 		.nav-right {
@@ -316,18 +389,25 @@
 			transform: translateY(-50%);
 		}
 
-		.about {
-			position: relative;
-			z-index: 60;
+		/* Push content so the portrait row's centre lands on the datum:
+		   the row is 285px tall (228px wide × 4:5), so half is ~143px. */
+		.about.has-portraits {
+			padding-top: calc(50vh - 143px);
 		}
 
-		/* Text reads in the right half, left-aligned to the image edge.
-		   26rem measure keeps the right edge clear of the fixed nav. */
+		.portraits {
+			max-width: none;
+			width: 480px;
+			gap: 24px;
+			padding: 0;
+			margin: 0 auto;
+		}
+
 		.column {
-			max-width: 26rem;
-			margin: 0;
-			margin-left: 50vw;
-			padding: 22vh 48px 18vh 48px;
+			max-width: none;
+			width: 480px;
+			padding: 0;
+			margin: 56px auto 30vh;
 		}
 	}
 </style>

@@ -7,21 +7,25 @@ const PROJECT_FIELDS = `
 	"slug": slug.current,
 	location,
 	category,
-	categories,
 	photographer,
 	completion,
 	description,
-	"image": heroImage.asset->url,
-	"heroHotspot": heroImage.hotspot,
-	"gallery": gallery[]{ "url": asset->url, "size": coalesce(size, "auto") },
-	"featuredImages": featuredImages[].asset->url,
-	heroColor,
-	featured
+	"image": coalesce(gallery[isCover == true][0].asset->url, gallery[0].asset->url),
+	"gallery": gallery[]{ "url": asset->url },
+	featured,
+	isHero
 `;
 
 export async function getProjects(): Promise<Project[]> {
 	const results = await client.fetch(
 		`*[_type == "project"] | order(completion desc, order asc) { ${PROJECT_FIELDS} }`
+	);
+	return results.map(mapProject);
+}
+
+export async function getFeaturedProjects(): Promise<Project[]> {
+	const results = await client.fetch(
+		`*[_type == "project" && featured == true] | order(order asc) { ${PROJECT_FIELDS} }`
 	);
 	return results.map(mapProject);
 }
@@ -36,7 +40,8 @@ export async function getProjectBySlug(slug: string): Promise<Project | null> {
 
 export async function getStudioContent() {
 	return client.fetch(`*[_type == "studioContent"][0] {
-		"image": image.asset->url,
+		"portraitOne": portraitOne.asset->url,
+		"portraitTwo": portraitTwo.asset->url,
 		aboutText,
 		contactEmail,
 		contactPhone,
@@ -53,28 +58,24 @@ export async function getListItems(type: 'press' | 'award') {
 }
 
 function mapProject(raw: any): Project {
-	const rawGallery = raw.gallery || [];
-	const gallery = rawGallery.map((item: any) => {
-		if (typeof item === 'string') return { url: item, size: 'auto' as const };
-		return { url: item.url || '', size: item.size || 'auto' };
-	}).filter((g: any) => g.url);
-
-	const featuredImages: string[] = (raw.featuredImages || []).filter((u: unknown) => typeof u === 'string' && u.length > 0);
+	const gallery = (raw.gallery || [])
+		.map((item: any) => ({ url: typeof item === 'string' ? item : item.url || '' }))
+		.filter((g: any) => g.url);
 
 	return {
 		slug: raw.slug,
 		title: raw.title,
 		location: raw.location,
 		category: raw.category,
-		categories: raw.categories,
 		photographer: raw.photographer,
 		completion: raw.completion,
-		description: raw.description || [],
+		description: typeof raw.description === 'string'
+			? raw.description.split('\n\n').map((p: string) => p.trim()).filter(Boolean)
+			: (raw.description || []),
 		image: raw.image || '',
 		gallery,
-		featuredImages,
-		heroColor: raw.heroColor || '#999',
 		sections: [],
-		featured: raw.featured || false
+		featured: raw.featured || false,
+		isHero: raw.isHero || false,
 	};
 }

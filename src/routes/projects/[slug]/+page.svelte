@@ -191,6 +191,22 @@
 					{#each project.description as paragraph}
 						<p>{paragraph}</p>
 					{/each}
+					<!-- On mobile the top bar is collapsed to title + Close, so the full
+					     project meta lives here, beside the text that gives it context. -->
+					<dl class="slide-meta">
+						{#if project.location}
+							<div><dt>Location</dt><dd>{project.location}</dd></div>
+						{/if}
+						{#if project.category}
+							<div><dt>Type</dt><dd>{project.category.replace('-', ' & ').replace(/\b\w/g, (c) => c.toUpperCase())}</dd></div>
+						{/if}
+						{#if project.completion}
+							<div><dt>Completed</dt><dd>{project.completion}</dd></div>
+						{/if}
+						{#if project.photographer}
+							<div><dt>Photography</dt><dd>{project.photographer}</dd></div>
+						{/if}
+					</dl>
 				</div>
 			{/if}
 		{/each}
@@ -319,15 +335,15 @@
 
 	.description-slide p {
 		margin: 0;
-		text-indent: 1.5em;
-	}
-
-	.description-slide p:first-child {
-		text-indent: 0;
 	}
 
 	.description-slide p + p {
 		margin-top: 0.3em;
+	}
+
+	/* The full meta block only surfaces on mobile, where the top bar is collapsed. */
+	.slide-meta {
+		display: none;
 	}
 
 	.counter {
@@ -347,36 +363,50 @@
 	}
 
 	@media (max-width: 768px) {
+		/* Collapse the top bar to a single line — just the title and Close. The
+		   rest of the meta moves onto the description slide. */
 		.top-bar {
-			display: grid;
-			grid-template-columns: 1fr auto;
-			gap: 10px 24px;
-			padding: 12px 16px;
+			display: flex;
+			align-items: baseline;
+			justify-content: space-between;
+			padding: 16px;
 		}
 
-		.meta-group:nth-child(1) {
-			grid-row: 1;
-			grid-column: 1;
-		}
-
-		.meta-group:nth-child(2) {
-			grid-row: 2;
-			grid-column: 1;
-		}
-
+		.meta-group:nth-child(2),
 		.meta-group:nth-child(3) {
-			grid-row: 2;
-			grid-column: 2;
-			text-align: right;
+			display: none;
 		}
 
-		.meta-group.right {
-			grid-row: 1;
-			grid-column: 2;
+		/* Only the title survives in group 1 — drop the location line. */
+		.meta-group:first-child .meta-detail {
+			display: none;
 		}
 
 		.image-area {
-			margin: 0 8px;
+			margin: 0 16px;
+		}
+
+		/* Reveal the spec list under the description text. */
+		.slide-meta {
+			display: flex;
+			flex-direction: column;
+			gap: 4px;
+			margin-top: 28px;
+		}
+
+		.slide-meta div {
+			display: flex;
+			justify-content: space-between;
+			gap: 24px;
+		}
+
+		.slide-meta dt {
+			color: var(--color-muted);
+		}
+
+		.slide-meta dd {
+			margin: 0;
+			text-align: right;
 		}
 	}
 

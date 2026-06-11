@@ -4,7 +4,7 @@
 	import Monogram from '$lib/components/Monogram.svelte';
 	import Footer from '$lib/components/Footer.svelte';
 
-	let { children } = $props();
+	let { children, data } = $props();
 	let isToolPage = $derived(page.url.pathname.startsWith('/tools/'));
 	let isRichon = $derived(page.url.pathname.startsWith('/richon'));
 	let isStudio = $derived(page.url.pathname.startsWith('/studio'));
@@ -46,7 +46,7 @@
 </div>
 
 {#if showChrome}
-	<Footer />
+	<Footer studio={data.studio} />
 {/if}
 
 <style>

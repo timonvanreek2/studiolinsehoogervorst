@@ -1,8 +1,9 @@
-import { getStudioContent, getListItems } from '$lib/sanity/queries';
+import { getListItems } from '$lib/sanity/queries';
+import type { PageServerLoad } from './$types';
 
-export async function load() {
-	const [studio, press, awards] = await Promise.all([
-		getStudioContent(),
+export const load: PageServerLoad = async ({ parent }) => {
+	const { studio } = await parent();
+	const [press, awards] = await Promise.all([
 		getListItems('press'),
 		getListItems('award')
 	]);

@@ -83,7 +83,7 @@
 	style:--padding="180px"
 	style:--aspect="4 / 5"
 	style:--label-size="13px"
-	style:--label-color="#000000"
+	style:--label-color="var(--color-muted)"
 	role="presentation"
 >
 	{#each cells as cell, i (cell.project.slug)}
@@ -102,7 +102,7 @@
 				srcset={isHero ? heroSrcset(cell.url) : cellSrcset(cell.url)}
 				sizes={isHero
 					? '100vw'
-					: '(max-width: 768px) 48vw, (max-width: 1024px) 45vw, 26vw'}
+					: '(max-width: 768px) 64vw, (max-width: 1024px) 45vw, 26vw'}
 				alt={cell.project.title}
 				loading={i < 6 || isHero ? 'eager' : 'lazy'}
 				fetchpriority={isHero ? 'high' : undefined}
@@ -169,7 +169,7 @@
 	}
 
 	.label {
-		margin-top: 6px;
+		margin-top: 10px;
 		font-family: var(--font-sans);
 		font-size: var(--label-size);
 		font-weight: 550;
@@ -203,11 +203,23 @@
 	}
 
 	@media (max-width: 768px) {
+		/* Single-column editorial feed: one project per row, each image a narrow
+		   centred column with generous white space between. The opening hero docks
+		   into the top slot of this feed. */
 		.grid {
-			grid-template-columns: repeat(2, 1fr);
-			column-gap: 8px;
-			row-gap: 40px;
-			padding: 0 8px;
+			grid-template-columns: 1fr;
+			justify-items: center;
+			row-gap: 80px;
+			padding: 0 16px;
+		}
+
+		.cell {
+			width: 64%;
+		}
+
+		/* Silent feed — titles live on the detail page and the Index. */
+		.label {
+			display: none;
 		}
 	}
 </style>

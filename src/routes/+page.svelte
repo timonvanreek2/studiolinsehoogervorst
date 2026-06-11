@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import type { Category } from '$lib/types';
 	import CatalogueGrid from '$lib/components/CatalogueGrid.svelte';
+	import Wordmark from '$lib/components/Wordmark.svelte';
+	import MobileMenu from '$lib/components/MobileMenu.svelte';
 
 	let { data } = $props();
 
@@ -9,37 +10,28 @@
 		data.allProjects.filter((p) => p.image || (p.gallery && p.gallery.length > 0))
 	);
 
-	let activeFilter = $state<Category | null>(null);
+	let heroSlug = $derived(data.heroSlug ?? allProjects[0]?.slug ?? '');
+
+	// Mobile is a single-column feed where the hero docks into the TOP slot
+	// (index 0); desktop is a 3-col grid where the hero docks into the top-middle
+	// cell (index 1). Set from a media query on the client.
+	let singleColumn = $state(false);
 
 	let gridProjects = $derived.by(() => {
 		let list = [...allProjects];
-		const ngIndex = list.findIndex((p) => p.slug === 'national-gallery');
-		if (ngIndex >= 0 && ngIndex !== 1) {
-			const [ng] = list.splice(ngIndex, 1);
-			list.splice(1, 0, ng);
-		}
-		if (activeFilter) {
-			list = list.filter((p) => p.category === activeFilter || p.categories?.includes(activeFilter!));
+		const target = singleColumn ? 0 : 1;
+		const heroIndex = list.findIndex((p) => p.slug === heroSlug);
+		if (heroIndex >= 0 && heroIndex !== target) {
+			const [hero] = list.splice(heroIndex, 1);
+			list.splice(target, 0, hero);
 		}
 		return list;
 	});
 
-	const CATEGORIES: { label: string; value: Category }[] = [
-		{ label: 'Hospitality', value: 'hospitality' },
-		{ label: 'Cultural', value: 'cultural' },
-		{ label: 'Corporate & Retail', value: 'corporate-retail' },
-		{ label: 'Residential', value: 'residential' },
-	];
-
-	function setFilter(cat: Category | null) {
-		activeFilter = activeFilter === cat ? null : cat;
-		window.scrollTo({ top: SCROLL_RANGE, behavior: 'smooth' });
-	}
-
-	const heroSlug = 'national-gallery';
-
 	let path = $derived(page.url.pathname);
 	let isAbout = $derived(path.startsWith('/about'));
+
+	let menuOpen = $state(false);
 
 	/*
 	 * Hero → grid docking.
@@ -66,9 +58,13 @@
 	let revealed = $derived(reduceMotion || progress >= 0.85);
 	let docked = $derived(reduceMotion || progress >= 1);
 
+	// Wordmark typewriter: full name at the top (progress 0), un-typing to the
+	// S / L / H monogram as the hero docks (progress 1). Reduced motion stays full.
+	let wordmarkProgress = $derived(reduceMotion ? 0 : progress);
+
 	let ticking = false;
 	let styleEl: HTMLStyleElement | null = null;
-	let raf: { docTop: number; cellLeft: number; cellW: number; startW: number; startLeft: number } | null = null;
+	let raf: { cellLeft: number; cellW: number; startW: number; startLeft: number; startTop: number } | null = null;
 	let supportsScrollTimeline = false;
 
 	// chrome clears out as the footer arrives, so it never overlaps it
@@ -79,9 +75,11 @@
 		const m = raf!;
 		const s0 = m.startW / m.cellW;
 		const dx = (1 - p) * (m.startLeft - m.cellLeft);
-		// centred path: rendered top = (vh − h(p))/2, which simplifies to
-		// natural top + (p − 1)·docTop given docTop = RANGE + (vh − cellH)/2
-		const dy = (p - 1) * m.docTop;
+		// centred path: the image stays optically centred while it scales, so its
+		// rendered top tracks (vh − h(p))/2. startTop is that offset at p=0; it
+		// interpolates to 0 at p=1 (identity dock). On desktop startH = vh, so
+		// startTop = −docTop and this reduces to the original (p−1)·docTop.
+		const dy = (1 - p) * m.startTop;
 		const s = s0 + (1 - s0) * p;
 		return { dx, dy, s };
 	}
@@ -116,8 +114,12 @@
 		const docTop = mainRect.top + window.scrollY + heroEl.offsetTop;
 		const cellLeft = mainRect.left + heroEl.offsetLeft;
 
-		const startW = vh * (4 / 5); // 4:5 aspect → start height is exactly 100vh
-		raf = { docTop, cellLeft, cellW, startW, startLeft: (vw - startW) / 2 };
+		// Mobile: hero opens at 55vh, centred in the viewport so the wordmark sits
+		// above it. Desktop: opens at 100vh (full-screen, which is also centred).
+		const startH = vw <= 768 ? vh * 0.55 : vh;
+		const startW = startH * (4 / 5);
+		const startTop = (vh - startH) / 2 - docTop;
+		raf = { cellLeft, cellW, startW, startLeft: (vw - startW) / 2, startTop };
 
 		if (supportsScrollTimeline) {
 			if (!styleEl) {
@@ -147,19 +149,24 @@
 	}
 
 	function onScroll() {
+		// progress drives the grid reveal and wordmark typewriter — it's pure
+		// state with no layout read, so set it synchronously rather than waiting
+		// on a rAF (which can be throttled, leaving the grid stuck gated).
+		const y = window.scrollY;
+		progress = Math.min(y / SCROLL_RANGE, 1);
+
+		// The footer check reads layout (getBoundingClientRect), so keep it
+		// batched in a rAF, guarded by `ticking` to coalesce bursts of events.
 		if (ticking) return;
 		ticking = true;
 		requestAnimationFrame(() => {
-			const y = window.scrollY;
-			progress = Math.min(y / SCROLL_RANGE, 1);
-
 			footerEl ??= document.querySelector('.footer');
 			// hide once the footer's top rises past the datum line (vh/2)
 			atFooter = footerEl
 				? footerEl.getBoundingClientRect().top < window.innerHeight * 0.5
 				: false;
 
-			if (!supportsScrollTimeline && !reduceMotion) applyFrame(y);
+			if (!supportsScrollTimeline && !reduceMotion) applyFrame(window.scrollY);
 			ticking = false;
 		});
 	}
@@ -171,17 +178,26 @@
 		reduceMotion = mq.matches;
 		const onMq = () => { reduceMotion = mq.matches; };
 		mq.addEventListener('change', onMq);
+
+		const colMq = window.matchMedia('(max-width: 768px)');
+		singleColumn = colMq.matches;
+		const onCol = () => { singleColumn = colMq.matches; };
+		colMq.addEventListener('change', onCol);
+
 		return () => {
 			mq.removeEventListener('change', onMq);
+			colMq.removeEventListener('change', onCol);
 			styleEl?.remove();
 			styleEl = null;
 		};
 	});
 
-	// re-measure whenever the hero element (re)mounts, motion pref flips, or the window resizes
+	// re-measure whenever the hero element (re)mounts, motion pref flips, the
+	// column count flips (hero changes slot), or the window resizes
 	$effect(() => {
 		void heroEl;
 		void reduceMotion;
+		void singleColumn;
 		layout();
 		onScroll();
 		const onResize = () => layout();
@@ -200,24 +216,18 @@
 
 <h1 class="sr-only">Studio Linse Hoogervorst — Selected works</h1>
 
-<a href="/" class="wordmark" class:hidden={atFooter}>
-	<img src="/wordmark.svg" alt="Studio Linse Hoogervorst" class="wordmark-img" />
+<a href="/" class="wordmark" class:hidden={atFooter} aria-label="Studio Linse Hoogervorst">
+	<Wordmark progress={wordmarkProgress} />
 </a>
 
 <nav class="fixed-nav" class:hidden={atFooter}>
-	<button class="nav-link" class:selected={progress >= 1 && !activeFilter} onclick={() => setFilter(null)}>Selected</button><span class="sep">,&nbsp;</span><a href="/projects" class="nav-link">Index</a><span class="sep">,&nbsp;</span><a href="/about" class="nav-link" class:selected={isAbout}>About</a>
+	<button class="menu-toggle" onclick={() => (menuOpen = true)}>Menu</button>
+	<div class="nav-links">
+		<button class="nav-link" class:selected={progress >= 1} onclick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>Selected</button><span class="sep">,&nbsp;</span><a href="/projects" class="nav-link">Index</a><span class="sep">,&nbsp;</span><a href="/about" class="nav-link" class:selected={isAbout}>About</a>
+	</div>
 </nav>
 
-<div class="bottom-filters" class:visible={progress >= 1 && !atFooter}>
-	{#each CATEGORIES as cat, i}
-		<button
-			class="filter-link"
-			class:active={activeFilter === cat.value}
-			style:transition-delay="{i * 50}ms"
-			onclick={() => setFilter(cat.value)}
-		>{cat.label}</button>
-	{/each}
-</div>
+<MobileMenu bind:open={menuOpen} />
 
 <main bind:this={mainEl}>
 	<CatalogueGrid
@@ -242,6 +252,10 @@
 		z-index: 200;
 		display: flex;
 		align-items: center;
+		/* Stacked-wordmark display size; the typewriter reveal scales off these.
+		   (Native asset is 219×85 — shown smaller for a quieter presence.) */
+		--mark-w: 160px;
+		--mark-h: 62px;
 		/* Legible fallback for browsers without mix-blend-mode support */
 		color: #000;
 		transition: opacity 0.2s ease-out, visibility 0.2s;
@@ -254,9 +268,8 @@
 		}
 	}
 
-	.wordmark:hover {
-		opacity: 0.5;
-	}
+	/* No dim on hover — hovering the mark types the full name back in, and
+	   that reveal IS the hover feedback. */
 
 	.wordmark.hidden,
 	.fixed-nav.hidden {
@@ -265,11 +278,6 @@
 		pointer-events: none;
 	}
 
-	.wordmark-img {
-		height: 16px;
-		width: auto;
-		display: block;
-	}
 
 	.fixed-nav {
 		position: fixed;
@@ -278,7 +286,8 @@
 		transform: translateY(-50%);
 		z-index: 200;
 		display: flex;
-		align-items: baseline;
+		flex-direction: column;
+		align-items: flex-end;
 		font-family: var(--font-sans);
 		font-size: 13px;
 		font-weight: 550;
@@ -293,6 +302,11 @@
 			color: #fff;
 			mix-blend-mode: exclusion;
 		}
+	}
+
+	.nav-links {
+		display: flex;
+		align-items: baseline;
 	}
 
 	.nav-link {
@@ -317,58 +331,14 @@
 		font-style: normal;
 	}
 
-	.bottom-filters {
-		position: fixed;
-		bottom: 16px;
-		right: 16px;
-		z-index: 200;
-		display: flex;
-		flex-direction: column;
-		align-items: flex-end;
-		gap: 8px;
-		font-family: var(--font-sans);
-		font-size: 13px;
-		font-weight: 550;
-		line-height: 1;
-		/* Legible fallback for browsers without mix-blend-mode support */
-		color: #000;
-		pointer-events: none;
-	}
-
-	@supports (mix-blend-mode: exclusion) {
-		.bottom-filters {
-			color: #fff;
-			mix-blend-mode: exclusion;
-		}
-	}
-
-	.filter-link {
-		color: inherit;
+	.menu-toggle {
+		display: none;
 		background: none;
 		border: none;
 		padding: 0;
 		font: inherit;
-		font-weight: 500;
 		cursor: pointer;
-		white-space: nowrap;
-		pointer-events: auto;
-		opacity: 0;
-		transform: translateY(4px);
-		transition: opacity 0.3s cubic-bezier(0.23, 1, 0.32, 1), transform 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-	}
-
-	.bottom-filters.visible .filter-link {
-		opacity: 0.4;
-		transform: translateY(0);
-	}
-
-	.bottom-filters.visible .filter-link:hover {
-		opacity: 0.7;
-	}
-
-	.bottom-filters.visible .filter-link.active {
-		opacity: 1;
-		font-style: italic;
+		color: inherit;
 	}
 
 	main {
@@ -380,54 +350,33 @@
 	}
 
 	@media (max-width: 768px) {
+		/* Pin chrome to the top — same pattern as about and projects pages. */
 		.wordmark {
-			left: 8px;
-		}
-
-		/* Shrink wordmark on mobile to prevent collision with fixed-nav at ~390px.
-		   At 16px the SVG wordmark renders ~330px wide — far too wide to share the
-		   datum line with the nav (~120px). Dropping to 13px brings it to ~270px;
-		   combined with right:8px nav placement they still total ~400px. The robust
-		   solution: keep both on the datum but wrap fixed-nav below the wordmark as
-		   a unit when they can't fit. We use the simple approach: shrink wordmark to
-		   13px height and accept a small gap — tested at 390px they clear each other. */
-		.wordmark-img {
-			height: 13px;
+			top: 16px;
+			left: 16px;
+			transform: none;
+			--mark-w: 140px;
+			--mark-h: 54px;
 		}
 
 		.fixed-nav {
-			right: 8px;
+			top: 16px;
+			right: 16px;
+			transform: none;
 		}
 
-		/* On mobile the filters sit over photography: a quiet glass chip
-		   instead of blend-mode text keeps them legible — but ONLY once
-		   .visible is set, so the chip doesn't appear as an empty white
-		   rectangle before the user has scrolled into the grid. */
-		.bottom-filters {
-			right: 8px;
-			bottom: 8px;
-			mix-blend-mode: normal;
-			color: var(--color-primary);
+		.menu-toggle {
+			display: block;
 		}
 
-		/* Apply frosted-glass treatment only when the chip is visible */
-		.bottom-filters.visible {
-			background: rgba(255, 255, 255, 0.65);
-			-webkit-backdrop-filter: blur(12px);
-			backdrop-filter: blur(12px);
-			padding: 10px 12px;
-		}
-
-		/* Override the @supports exclusion rule for mobile */
-		@supports (mix-blend-mode: exclusion) {
-			.bottom-filters {
-				color: var(--color-primary);
-				mix-blend-mode: normal;
-			}
+		.nav-links {
+			display: none;
 		}
 
 		main {
-			padding-top: calc(800px + 50vh - ((100vw - 24px) / 2) * 0.625);
+			/* Single-column feed: cell is 64% of the (100vw − 32px) content width,
+			   so its half-height is (100vw − 32px) × 0.64 × 0.625 = × 0.4. */
+			padding-top: calc(800px + 50vh - (100vw - 32px) * 0.4);
 		}
 	}
 </style>
