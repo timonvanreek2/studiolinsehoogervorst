@@ -62,6 +62,12 @@
 	// S / L / H monogram as the hero docks (progress 1). Reduced motion stays full.
 	let wordmarkProgress = $derived(reduceMotion ? 0 : progress);
 
+	// Hero corner radius rides the dock: a sharp full-bleed image at the top
+	// (factor 0), arriving at the full site --img-radius exactly as it locks into
+	// the grid (factor 1). Reduced motion has no dock, so the hero sits in the grid
+	// from the start — undefined lets it use the global radius like its neighbours.
+	let heroRadiusFactor = $derived(reduceMotion ? undefined : progress);
+
 	let ticking = false;
 	let styleEl: HTMLStyleElement | null = null;
 	let raf: { cellLeft: number; cellW: number; startW: number; startLeft: number; startTop: number } | null = null;
@@ -223,7 +229,7 @@
 <nav class="fixed-nav" class:hidden={atFooter}>
 	<button class="menu-toggle" onclick={() => (menuOpen = true)}>Menu</button>
 	<div class="nav-links">
-		<button class="nav-link" class:selected={progress >= 1} onclick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>Selected</button><span class="sep">,&nbsp;</span><a href="/projects" class="nav-link">Index</a><span class="sep">,&nbsp;</span><a href="/about" class="nav-link" class:selected={isAbout}>About</a>
+		<button class="nav-link" class:selected={progress >= 1} onclick={() => window.scrollTo({ top: SCROLL_RANGE, behavior: 'smooth' })}>Selected</button><span class="sep">,&nbsp;</span><a href="/projects" class="nav-link">Index</a><span class="sep">,&nbsp;</span><a href="/about" class="nav-link" class:selected={isAbout}>About</a>
 	</div>
 </nav>
 
@@ -235,6 +241,7 @@
 		{heroSlug}
 		{revealed}
 		{docked}
+		{heroRadiusFactor}
 		onHeroEl={(el) => (heroEl = el)}
 	/>
 </main>

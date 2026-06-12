@@ -7,13 +7,20 @@
 		heroSlug = undefined,
 		onHeroEl = undefined,
 		revealed = true,
-		docked = true
+		docked = true,
+		heroRadiusFactor = undefined
 	}: {
 		projects: Project[];
 		heroSlug?: string;
 		onHeroEl?: (el: HTMLElement | null) => void;
 		revealed?: boolean;
 		docked?: boolean;
+		// Corner-radius multiplier for the docking hero only, 0 → 1. While the hero
+		// is blown up full-screen it reads as a sharp full-bleed image (0); it rides
+		// to 1× the site-wide --img-radius as it locks into the grid. Expressed as a
+		// factor (not px) so the resting hero always matches the global token exactly.
+		// undefined → fall back to the global image radius (like every other image).
+		heroRadiusFactor?: number;
 	} = $props();
 
 	function staggerMs(index: number): number {
@@ -106,6 +113,9 @@
 				alt={cell.project.title}
 				loading={i < 6 || isHero ? 'eager' : 'lazy'}
 				fetchpriority={isHero ? 'high' : undefined}
+				style:border-radius={isHero && heroRadiusFactor !== undefined
+					? `calc(var(--img-radius) * ${heroRadiusFactor})`
+					: null}
 			/>
 			<div class="label">{cell.project.title}</div>
 		</a>
