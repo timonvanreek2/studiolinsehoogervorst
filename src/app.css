@@ -24,8 +24,19 @@
 	--font-serif: 'Office Times Sharp', Georgia, serif;
 	--font-sans: 'ABC Diatype', system-ui, sans-serif;
 
-	/* Global image corner radius — a touch of softness across all imagery. */
-	--img-radius: 4px;
+	/* Global image corner radius — squared off across all imagery. */
+	--img-radius: 0px;
+}
+
+/* Lab variant: black-background theme. Token-level invert so the whole site
+   flips; chrome that uses mix-blend-mode: exclusion keeps inverting over
+   imagery as before. (Design Lab scaffolding — see lab.svelte.ts.) */
+:root[data-theme='dark'] {
+	--color-primary: #ffffff;
+	--color-muted: #9a9a9a;
+	--color-structural: #2a2a2a;
+	--color-bg: #000000;
+	--color-hover: #141414;
 }
 
 html {

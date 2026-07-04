@@ -11,9 +11,11 @@ const PROJECT_FIELDS = `
 	completion,
 	description,
 	"image": coalesce(gallery[isCover == true][0].asset->url, gallery[0].asset->url),
-	"gallery": gallery[]{ "url": asset->url },
+	"imageLqip": coalesce(gallery[isCover == true][0].asset->metadata.lqip, gallery[0].asset->metadata.lqip),
+	"gallery": gallery[]{ "url": asset->url, "lqip": asset->metadata.lqip, "aspectRatio": asset->metadata.dimensions.aspectRatio, isAccent },
 	featured,
-	isHero
+	isHero,
+	heroOrientation
 `;
 
 export async function getProjects(): Promise<Project[]> {
@@ -59,7 +61,11 @@ export async function getListItems(type: 'press' | 'award') {
 
 function mapProject(raw: any): Project {
 	const gallery = (raw.gallery || [])
-		.map((item: any) => ({ url: typeof item === 'string' ? item : item.url || '' }))
+		.map((item: any) =>
+			typeof item === 'string'
+				? { url: item }
+				: { url: item.url || '', lqip: item.lqip || undefined, aspectRatio: item.aspectRatio || undefined, isAccent: item.isAccent || false }
+		)
 		.filter((g: any) => g.url);
 
 	return {
@@ -73,9 +79,11 @@ function mapProject(raw: any): Project {
 			? raw.description.split('\n\n').map((p: string) => p.trim()).filter(Boolean)
 			: (raw.description || []),
 		image: raw.image || '',
+		imageLqip: raw.imageLqip || undefined,
 		gallery,
 		sections: [],
 		featured: raw.featured || false,
 		isHero: raw.isHero || false,
+		heroOrientation: raw.heroOrientation === 'portrait' ? 'portrait' : 'landscape',
 	};
 }
