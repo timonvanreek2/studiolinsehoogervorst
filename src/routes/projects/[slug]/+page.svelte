@@ -227,6 +227,7 @@
 				<div
 					class="fr-band fr-{band.place}"
 					class:hero-wide={band.place === 'hero' && lab.framedOpen === 'landscape'}
+					class:fr-wide={band.img.aspect > 1.2}
 				>
 					<div class="fr-cell">
 						<img
@@ -473,23 +474,69 @@
 			order: 3;
 		}
 
-		/* Bands stack full-bleed at a consistent portrait crop (Figma hero is 402×523),
-		   touching edge-to-edge like the desktop rhythm. */
+		/* Mobile rhythm: the desktop composition roles drive two alternating beats
+		   instead of one uniform stack. FULL-BLEED (hero + wide/full bands) run
+		   edge-to-edge and touch like a filmstrip; FRAMED (left/mid/right column
+		   bands) sit inset as smaller prints with air around them, nudged to
+		   alternating sides so they never line up. Landscape frames (fr-wide) keep a
+		   wider crop rather than being squeezed into the tall portrait mould. */
 		.fr-band {
 			height: auto;
 			display: block;
+			margin: 0;
 		}
-		.fr-band + .fr-band {
-			margin-top: -1px;
-		}
-		.fr-band .fr-cell {
+
+		/* Full-bleed beats — immersive, touching. The hero-wide selector is repeated
+		   here to out-specify the desktop dock-width rule (media queries add no
+		   specificity), so the opener goes edge-to-edge on phones. */
+		.fr-full .fr-cell,
+		.fr-hero .fr-cell,
+		.fr-hero.hero-wide .fr-cell {
 			width: 100%;
 			margin: 0;
 			height: auto;
 			aspect-ratio: 402 / 523;
 		}
+		.fr-full.fr-wide .fr-cell,
+		.fr-hero.fr-wide .fr-cell,
 		.fr-hero.hero-wide .fr-cell {
-			width: 100%;
+			aspect-ratio: 3 / 2;
+		}
+		.fr-full + .fr-full,
+		.fr-hero + .fr-full {
+			margin-top: -1px;
+		}
+
+		/* Framed beats — inset prints with breathing room, alternating alignment. The
+		   .fr-band prefix out-specifies the desktop `.fr-band + .fr-band` overlap rule
+		   so framed prints get air on BOTH sides, even after a full-bleed neighbour. */
+		.fr-band.fr-left,
+		.fr-band.fr-mid,
+		.fr-band.fr-right {
+			margin: 48px 0;
+		}
+		.fr-left .fr-cell,
+		.fr-mid .fr-cell,
+		.fr-right .fr-cell {
+			height: auto;
+			aspect-ratio: 4 / 5;
+		}
+		.fr-left.fr-wide .fr-cell,
+		.fr-mid.fr-wide .fr-cell,
+		.fr-right.fr-wide .fr-cell {
+			aspect-ratio: 4 / 3;
+		}
+		.fr-left .fr-cell {
+			width: 76%;
+			margin: 0 auto 0 var(--fr-edge);
+		}
+		.fr-right .fr-cell {
+			width: 76%;
+			margin: 0 var(--fr-edge) 0 auto;
+		}
+		.fr-mid .fr-cell {
+			width: 70%;
+			margin: 0 auto;
 		}
 
 		/* The hero band leads with the description above its image (order:-1), so the page
@@ -505,14 +552,21 @@
 			margin: 32px 12px 24px;
 		}
 
-		/* Any floating accent just becomes another full-bleed block in the stack, cropped to
-		   the same portrait aspect so the rhythm stays consistent. */
+		/* Accents stay small and inset, offset to the clear side opposite their band. */
 		.fr-accent {
 			position: static;
-			width: 100%;
+			width: 50%;
 			height: auto;
-			aspect-ratio: 402 / 523;
-			margin: -1px 0 0;
+			aspect-ratio: 3 / 4;
+			margin: 20px 0 4px;
+		}
+		.fr-accent--left {
+			margin-left: var(--fr-edge);
+			margin-right: auto;
+		}
+		.fr-accent--right {
+			margin-left: auto;
+			margin-right: var(--fr-edge);
 		}
 	}
 
