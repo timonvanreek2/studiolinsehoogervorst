@@ -51,8 +51,8 @@ const DEFAULTS: LabFlags = {
 	enabled: false,
 	collapsed: false,
 	dark: false,
-	heroInset: false,
-	heroInsetScale: 78,
+	heroInset: true,
+	heroInsetScale: 64,
 	gridPreset: 'default',
 	framedOpen: 'landscape'
 };
