@@ -227,9 +227,11 @@
 		let startW: number;
 		let startH: number;
 
-		if (lab.heroInset) {
-			// Smaller "framed print" opening — a centred image, the full composition
-			// visible, that docks into the grid cell. The size slider is a fraction of
+		if (lab.heroInset && vw > 768) {
+			// Smaller "framed print" opening (desktop only) — a centred image, the full
+			// composition visible, that docks into the grid cell. On phones the inset
+			// shrinks to a timid stamp, so mobile falls through to the full-bleed opening
+			// below, matching the full-bleed detail page. The size slider is a fraction of
 			// the full opening: a share of width for landscape, of height for portrait.
 			if (heroLandscape) {
 				startW = vw * (lab.heroInsetScale / 100);
