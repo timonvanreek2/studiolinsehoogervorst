@@ -52,13 +52,20 @@
 	 *
 	 * The image stays optically centred while it scales: its top follows
 	 * (vh − h(p))/2. Because the spacer is built so the docked slot IS the
-	 * centred position, that path lands on the identity transform exactly,
-	 * and the deltas come out linear in scroll — two keyframes suffice.
+	 * centred position, that path lands on the identity transform exactly. The
+	 * deltas are linear in p, but p itself is eased (see easeDock) so the dock
+	 * front-loads its travel — hence the keyframes are sampled, not just two.
 	 */
 	// Scroll distance the hero dock plays over. Also sets how far down the grid
 	// sits (paddingTop below), so a larger range holds the hero solo for longer
 	// before the surrounding grid scrolls in — the intro's main pacing knob.
 	const SCROLL_RANGE = 1000;
+
+	// Ease-out for the dock so the hero does most of its shrink early and settles
+	// into the slot, instead of crawling at a constant rate the whole way — the
+	// linear scrub read as slow. Baked into the keyframe samples, the rAF fallback,
+	// and `progress` alike, so the hero transform and the wordmark share one curve.
+	const easeDock = (t: number): number => 1 - Math.pow(1 - t, 3);
 
 	// Crop-morph (landscape lab variant): the wide image's aspect inside the
 	// hero window. Must stay in sync with the -43.75% offset in CatalogueGrid.
@@ -180,17 +187,22 @@
 			const STEPS = 40;
 			for (let i = 0; i <= STEPS; i++) {
 				const p = i / STEPS;
-				const d = landscapeDelta(p);
+				const d = landscapeDelta(easeDock(p));
 				const pct = (p * 100).toFixed(1);
 				win += `${pct}% { transform: translate(${d.dx.toFixed(2)}px, ${d.dy.toFixed(2)}px) scale(${d.sx.toFixed(5)}, ${d.sy.toFixed(5)}); }`;
 				img += `${pct}% { transform: translate(${d.tx.toFixed(2)}px, ${d.ty.toFixed(2)}px) scale(${d.kx.toFixed(5)}, ${d.ky.toFixed(5)}); }`;
 			}
 			return win + '}' + img + '}';
 		}
+		// heroDelta is linear in p, but the eased scrub is not, so sample the curve
+		// rather than emitting two keyframes — the linear timeline then reads back
+		// as the ease-out motion.
 		let css = '@keyframes hero-dock {';
-		for (const p of [0, 1]) {
-			const { dx, dy, s } = heroDelta(p);
-			css += `${p * 100}% { transform: translate(${dx.toFixed(2)}px, ${dy.toFixed(2)}px) scale(${s.toFixed(5)}); }`;
+		const STEPS = 24;
+		for (let i = 0; i <= STEPS; i++) {
+			const p = i / STEPS;
+			const { dx, dy, s } = heroDelta(easeDock(p));
+			css += `${(p * 100).toFixed(1)}% { transform: translate(${dx.toFixed(2)}px, ${dy.toFixed(2)}px) scale(${s.toFixed(5)}); }`;
 		}
 		return css + '}';
 	}
@@ -321,7 +333,7 @@
 
 	function applyFrame(y: number) {
 		if (!heroEl || !raf) return;
-		const p = Math.min(Math.max(y / SCROLL_RANGE, 0), 1);
+		const p = easeDock(Math.min(Math.max(y / SCROLL_RANGE, 0), 1));
 		if (heroLandscape) {
 			if (!cropEl || !wideImgEl) return;
 			if (p >= 1) {
@@ -345,10 +357,11 @@
 	}
 
 	function onScroll() {
-		// progress drives the grid reveal and wordmark typewriter — it's pure
-		// state with no layout read, so set it synchronously rather than waiting
-		// on a rAF (which can be throttled, leaving the grid stuck gated).
-		progress = Math.min(window.scrollY / SCROLL_RANGE, 1);
+		// progress drives the wordmark typewriter and the docked flag — it's pure
+		// state with no layout read, so set it synchronously rather than waiting on
+		// a rAF (which can be throttled). Eased to match the hero dock so the
+		// wordmark un-types on the same curve.
+		progress = easeDock(Math.min(window.scrollY / SCROLL_RANGE, 1));
 
 		// Fallback browsers (no scroll-timeline, e.g. Safari < 26): write the hero
 		// transform synchronously too — a style write inside the scroll handler
