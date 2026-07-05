@@ -55,7 +55,10 @@
 	 * centred position, that path lands on the identity transform exactly,
 	 * and the deltas come out linear in scroll — two keyframes suffice.
 	 */
-	const SCROLL_RANGE = 800;
+	// Scroll distance the hero dock plays over. Also sets how far down the grid
+	// sits (paddingTop below), so a larger range holds the hero solo for longer
+	// before the surrounding grid scrolls in — the intro's main pacing knob.
+	const SCROLL_RANGE = 1000;
 
 	// Crop-morph (landscape lab variant): the wide image's aspect inside the
 	// hero window. Must stay in sync with the -43.75% offset in CatalogueGrid.
@@ -549,8 +552,9 @@
 		position: relative;
 		z-index: 60;
 		min-height: 100vh;
-		/* JS sets the real value; this keeps the pre-hydration frame close */
-		padding-top: calc(800px + 50vh - ((100vw - 680px) / 3) * 0.625);
+		/* JS sets the real value; this keeps the pre-hydration frame close.
+		   The leading term mirrors SCROLL_RANGE. */
+		padding-top: calc(1000px + 50vh - ((100vw - 680px) / 3) * 0.625);
 	}
 
 	@media (max-width: 768px) {
@@ -579,8 +583,9 @@
 
 		main {
 			/* Single-column feed: cell is 64% of the (100vw − 32px) content width,
-			   so its half-height is (100vw − 32px) × 0.64 × 0.625 = × 0.4. */
-			padding-top: calc(800px + 50vh - (100vw - 32px) * 0.4);
+			   so its half-height is (100vw − 32px) × 0.64 × 0.625 = × 0.4.
+			   Leading term mirrors SCROLL_RANGE. */
+			padding-top: calc(1000px + 50vh - (100vw - 32px) * 0.4);
 		}
 	}
 </style>
