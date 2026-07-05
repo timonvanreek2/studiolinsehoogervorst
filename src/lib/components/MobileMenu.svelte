@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import { fade } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
+	import Wordmark from './Wordmark.svelte';
 
 	// Bindable so each page keeps owning the open/closed state next to its own
 	// Menu toggle; this component only renders the open overlay.
@@ -37,8 +38,8 @@
 <svelte:window onkeydown={onKeydown} />
 
 {#if open}
-	<!-- A frosted white veil washes the page back; navigation stays compact at
-	     top-right, exactly where the Menu toggle was. -->
+	<!-- A solid, theme-coloured panel; Close stays top-right where the Menu toggle
+	     was, and the navigation is centred in the viewport. -->
 	<div
 		class="menu-overlay"
 		role="dialog"
@@ -46,20 +47,21 @@
 		aria-label="Menu"
 		transition:fade={{ duration: 260, easing: cubicOut }}
 	>
-		<nav class="menu-nav">
-			<button class="menu-link menu-close" onclick={close}>Close</button>
-			<div class="menu-links">
-				{#each links as link}
-					<a
-						href={link.href}
-						class="menu-link"
-						class:current={link.match(path)}
-						onclick={close}
-					>
-						{link.label}
-					</a>
-				{/each}
-			</div>
+		<a href="/" class="menu-logo" aria-label="Studio Linse Hoogervorst" onclick={close}>
+			<Wordmark progress={0} />
+		</a>
+		<button class="menu-close" onclick={close}>Close</button>
+		<nav class="menu-links">
+			{#each links as link}
+				<a
+					href={link.href}
+					class="menu-link"
+					class:current={link.match(path)}
+					onclick={close}
+				>
+					{link.label}
+				</a>
+			{/each}
 		</nav>
 	</div>
 {/if}
@@ -69,18 +71,11 @@
 		position: fixed;
 		inset: 0;
 		z-index: 1000;
-		/* A flat white wash — the content stays faintly recognisable beneath it,
-		   rather than blurred away. */
-		background: rgba(255, 255, 255, 0.9);
-	}
-
-	.menu-nav {
-		position: absolute;
-		top: 16px;
-		right: 16px;
+		/* Solid, theme-coloured panel — flips with light/dark via the token. */
+		background: var(--color-bg);
 		display: flex;
-		flex-direction: column;
-		align-items: flex-end;
+		align-items: center;
+		justify-content: center;
 		font-family: var(--font-sans);
 		font-size: 13px;
 		font-weight: 550;
@@ -88,22 +83,39 @@
 		color: var(--color-primary);
 	}
 
-	/* Close sits where the toggle was; the link group drops below with a gap. */
+	/* Logo top-left, mirroring the page header; a home link that closes the menu.
+	   Plain currentColor here — no exclusion blend, since the ground is a known
+	   solid colour. */
+	.menu-logo {
+		position: absolute;
+		top: 16px;
+		left: 16px;
+		display: flex;
+		color: var(--color-primary);
+		--mark-w: 140px;
+		--mark-h: 54px;
+	}
+
+	/* Close stays top-right, exactly where the Menu toggle was. */
 	.menu-close {
+		position: absolute;
+		top: 16px;
+		right: 16px;
 		background: none;
 		border: none;
 		padding: 0;
 		font: inherit;
 		color: inherit;
 		cursor: pointer;
-		margin-bottom: 32px;
 	}
 
+	/* Links in a centred row across the middle of the viewport. */
 	.menu-links {
 		display: flex;
-		flex-direction: column;
-		align-items: flex-end;
-		gap: 12px;
+		flex-direction: row;
+		align-items: center;
+		justify-content: center;
+		gap: 28px;
 	}
 
 	.menu-link {
