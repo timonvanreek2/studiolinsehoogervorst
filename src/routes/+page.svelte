@@ -69,7 +69,6 @@
 	let mainEl = $state<HTMLElement | null>(null);
 	let progress = $state(0);
 	let reduceMotion = $state(false);
-	let revealed = $derived(reduceMotion || progress >= 0.85);
 	let docked = $derived(reduceMotion || progress >= 1);
 
 	// Wordmark typewriter: full name at the top (progress 0), un-typing to the
@@ -437,7 +436,6 @@
 	<CatalogueGrid
 		projects={gridProjects}
 		{heroSlug}
-		{revealed}
 		{docked}
 		{heroRadiusFactor}
 		heroLandscape={heroLandscape}

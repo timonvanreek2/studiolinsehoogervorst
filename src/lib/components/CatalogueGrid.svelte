@@ -1,13 +1,12 @@
 <script lang="ts">
 	import type { Project } from '$lib/types';
-	import { fadeIn, revealOnLoad } from '$lib/actions/inview';
+	import { revealOnLoad } from '$lib/actions/inview';
 
 
 	let {
 		projects,
 		heroSlug = undefined,
 		onHeroEl = undefined,
-		revealed = true,
 		docked = true,
 		heroRadiusFactor = undefined,
 		heroLandscape = false
@@ -15,7 +14,6 @@
 		projects: Project[];
 		heroSlug?: string;
 		onHeroEl?: (el: HTMLElement | null) => void;
-		revealed?: boolean;
 		docked?: boolean;
 		// Lab variant: the hero opens as a full-screen landscape image whose
 		// visible window crops down into this same 4:5 cell as it docks. The cell
@@ -29,12 +27,6 @@
 		// undefined → fall back to the global image radius (like every other image).
 		heroRadiusFactor?: number;
 	} = $props();
-
-	function staggerMs(index: number): number {
-		const x = Math.sin(index * 12.9898 + 78.233) * 43758.5453;
-		const rand = x - Math.floor(x);
-		return Math.round(rand * 400);
-	}
 
 	// Caption shows the city only — the part before the first comma ("Amsterdam, The
 	// Netherlands" → "Amsterdam"; a bare "London" stays "London").
@@ -133,7 +125,6 @@
 
 <div
 	class="grid"
-	class:gated={!revealed}
 	class:docked
 	style:--aspect="4 / 5"
 	style:--label-size="13px"
@@ -146,8 +137,6 @@
 			href="/projects/{cell.project.slug}"
 			class="cell"
 			class:hero-cell={isHero}
-			style:--stagger-delay="{staggerMs(i)}ms"
-			use:fadeIn
 			use:heroRef={isHero}
 		>
 			{#if isHero && heroLandscape}
@@ -250,35 +239,16 @@
 		z-index: 101;
 		display: block;
 		min-width: 0;
-		opacity: 0;
-		transition: opacity 0.5s cubic-bezier(0.23, 1, 0.32, 1);
-		transition-delay: var(--stagger-delay, 0ms);
 		/* Size-container so the caption can respond to the IMAGE's width, not the
 		   viewport's — the city hides when the cell itself gets small (see below). */
 		container-type: inline-size;
 	}
 
-	.cell:global(.visible) {
-		opacity: 1;
-	}
-
-	/* The hero cell is the landing image itself: always visible, never gated,
-	   transformed from center stage by the page's scroll-driven animation. */
+	/* The hero cell is the landing image itself, transformed from center stage by
+	   the page's scroll-driven animation; it sits above its neighbours as it docks. */
 	.cell.hero-cell {
-		opacity: 1;
-		transition: none;
 		z-index: 102;
 		will-change: transform;
-	}
-
-	/* While the intro is playing, hold neighbours back so the grid
-	   materialises around the docking hero instead of underneath it. */
-	.grid.gated .cell:not(.hero-cell) {
-		opacity: 0;
-	}
-
-	.grid.gated .label {
-		opacity: 0;
 	}
 
 	/* The hero's title may only appear once the image has reached its
