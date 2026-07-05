@@ -8,11 +8,11 @@ const KEY = 'slh-theme';
 export type Theme = 'light' | 'dark';
 
 function initial(): Theme {
-	if (!browser) return 'light';
+	if (!browser) return 'dark';
 	try {
-		return localStorage.getItem(KEY) === 'dark' ? 'dark' : 'light';
+		return localStorage.getItem(KEY) === 'light' ? 'light' : 'dark';
 	} catch {
-		return 'light';
+		return 'dark';
 	}
 }
 

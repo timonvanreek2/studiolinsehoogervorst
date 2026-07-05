@@ -4,18 +4,20 @@
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<link rel="icon" href="%sveltekit.assets%/logo.svg" />
-		<meta name="theme-color" content="#ffffff" />
+		<meta name="theme-color" content="#0e0d0b" />
 		<meta name="description" content="Studio Linse Hoogervorst is a practice for interior architecture, founded by Paul Linse in Amsterdam." />
 		<meta property="og:type" content="website" />
 		<meta property="og:site_name" content="Studio Linse Hoogervorst" />
 		<meta property="og:image" content="https://studiolinsehoogervorst.com/hero.jpg" />
 		<script>
-			// Apply the saved theme before first paint so a dark-preferring visitor
-			// never sees a white flash. Mirrors the key/values in theme.svelte.ts.
+			// Dark is the default; apply it before first paint unless the visitor has
+			// explicitly chosen light, so no wrong-theme flash. Mirrors theme.svelte.ts.
 			try {
-				if (localStorage.getItem('slh-theme') === 'dark')
+				if (localStorage.getItem('slh-theme') !== 'light')
 					document.documentElement.setAttribute('data-theme', 'dark');
-			} catch (e) {}
+			} catch (e) {
+				document.documentElement.setAttribute('data-theme', 'dark');
+			}
 		</script>
 		%sveltekit.head%
 	</head>
