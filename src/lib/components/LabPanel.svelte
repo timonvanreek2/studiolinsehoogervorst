@@ -92,6 +92,11 @@
 				/>
 				<span class="name">Open portrait</span>
 			</label>
+			<label class="row">
+				<input type="checkbox" bind:checked={lab.mobileCarousel} />
+				<span class="name">Mobile carousel</span>
+				<span class="hint">swipe, not stack</span>
+			</label>
 		</div>
 
 		<footer>× minimises · Shift+L hides · not shown to visitors</footer>

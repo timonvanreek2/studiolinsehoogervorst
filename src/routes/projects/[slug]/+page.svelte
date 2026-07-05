@@ -50,6 +50,15 @@
 		return [opener, ...rest];
 	});
 
+	// Mobile carousel (lab variant): track which slide is centred so the counter
+	// stays in sync as the user swipes. Index = scroll offset / slide width.
+	let carouselEl = $state<HTMLDivElement>();
+	let carouselIndex = $state(0);
+	function onCarouselScroll() {
+		if (!carouselEl) return;
+		carouselIndex = Math.round(carouselEl.scrollLeft / carouselEl.clientWidth);
+	}
+
 	type FrPlace = 'hero' | 'left' | 'mid' | 'right' | 'full';
 	type FrBand = { img: ScrollImg; place: FrPlace; accent?: ScrollImg; accentSide?: 'left' | 'right' };
 
@@ -199,7 +208,7 @@
 	     (landscape 3/5 or portrait 2/5 per the sub-variant) with the project copy
 	     bottom-left of that first screen; images then run a varied left / full /
 	     centre / right rhythm, cover-cropped, with one small floating accent. -->
-	<div class="fr">
+	<div class="fr" class:carousel-mode={lab.mobileCarousel}>
 		<div class="fr-bar">
 			<div class="meta-group">
 				<span class="meta-title">{project.title}</span>
@@ -259,6 +268,42 @@
 				</div>
 			{/each}
 		</div>
+
+		{#if lab.mobileCarousel}
+			<!-- Mobile carousel variant (lab): reading text stays vertical (no horizontal
+			     scroll to read), then all images become a full-bleed, scroll-snapping swipe
+			     gallery with a live counter. Hidden on desktop; hides the grid on mobile. -->
+			<div class="fr-carousel-view">
+				{#if project.description?.length}
+					<div class="fr-copy fr-copy--carousel">
+						{#each project.description as paragraph}<p>{paragraph}</p>{/each}
+					</div>
+				{/if}
+				<div
+					class="fr-carousel"
+					bind:this={carouselEl}
+					onscroll={onCarouselScroll}
+					role="group"
+					aria-label="{project.title} image gallery"
+				>
+					{#each framedImages as im, i}
+						<figure class="fr-slide">
+							<img
+								class="fr-img"
+								src="{im.url}?w=1400&auto=format&q=85"
+								srcset="{im.url}?w=800&auto=format&q=85 800w, {im.url}?w=1400&auto=format&q=85 1400w"
+								sizes="100vw"
+								alt="{project.title} — image {i + 1}"
+								loading={i < 2 ? 'eager' : 'lazy'}
+							/>
+						</figure>
+					{/each}
+				</div>
+				<div class="fr-counter" aria-hidden="true">
+					{String(carouselIndex + 1).padStart(2, '0')} / {String(framedImages.length).padStart(2, '0')}
+				</div>
+			</div>
+		{/if}
 	</div>
 
 <style>
@@ -435,6 +480,12 @@
 		margin-top: 1em;
 	}
 
+	/* Carousel variant is mobile-only: hidden everywhere unless the mobile media
+	   query below re-shows it (this rule precedes the query so that override wins). */
+	.fr-carousel-view {
+		display: none;
+	}
+
 	@media (max-width: 768px) {
 		/* Phones follow the mobile Figma (node 368-5): a text cover first — title + Close,
 		   category, photographer, then the full description — as plain black text on white,
@@ -567,6 +618,52 @@
 		.fr-accent--right {
 			margin-left: auto;
 			margin-right: var(--fr-edge);
+		}
+
+		/* ─── Carousel variant (lab flag) ───────────────────────────────────────
+		   With the flag on, the vertical band grid is swapped for a full-bleed
+		   horizontal scroll-snap gallery. The reading copy stays above it (vertical,
+		   no horizontal scroll to read); only the images swipe. A live counter
+		   substitutes for the sense of "how many left" a carousel otherwise hides. */
+		.fr.carousel-mode .fr-grid {
+			display: none;
+		}
+		.fr-carousel-view {
+			display: block;
+		}
+		.fr-copy--carousel {
+			margin: 32px 12px 28px;
+		}
+		.fr-carousel {
+			display: flex;
+			overflow-x: auto;
+			scroll-snap-type: x mandatory;
+			-webkit-overflow-scrolling: touch;
+			scrollbar-width: none;
+		}
+		.fr-carousel::-webkit-scrollbar {
+			display: none;
+		}
+		.fr-slide {
+			flex: 0 0 100%;
+			width: 100%;
+			height: 72vh;
+			margin: 0;
+			scroll-snap-align: center;
+			scroll-snap-stop: always;
+		}
+		.fr-slide .fr-img {
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+			display: block;
+		}
+		.fr-counter {
+			padding: 16px 12px 0;
+			font-size: 12px;
+			letter-spacing: 0.02em;
+			color: var(--color-muted);
+			font-variant-numeric: tabular-nums;
 		}
 	}
 

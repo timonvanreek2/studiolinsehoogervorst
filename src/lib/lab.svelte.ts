@@ -45,6 +45,8 @@ export type LabFlags = {
 	gridPreset: SpacingPresetKey;
 	/** Detail page: which orientation the framed spread opens on (the hero image). */
 	framedOpen: 'landscape' | 'portrait';
+	/** Detail page (mobile only): swap the vertical rhythm for a swipeable image carousel. */
+	mobileCarousel: boolean;
 };
 
 const DEFAULTS: LabFlags = {
@@ -54,12 +56,20 @@ const DEFAULTS: LabFlags = {
 	heroInset: true,
 	heroInsetScale: 64,
 	gridPreset: 'default',
-	framedOpen: 'landscape'
+	framedOpen: 'landscape',
+	mobileCarousel: false
 };
 
 // Which keys reset returns to default — everything except the lab's own
 // presence (enabled) and whether the panel is open (collapsed).
-const VARIANT_KEYS = ['dark', 'heroInset', 'heroInsetScale', 'gridPreset', 'framedOpen'] as const;
+const VARIANT_KEYS = [
+	'dark',
+	'heroInset',
+	'heroInsetScale',
+	'gridPreset',
+	'framedOpen',
+	'mobileCarousel'
+] as const;
 
 function initial(): LabFlags {
 	if (!browser) return { ...DEFAULTS };
