@@ -28,15 +28,25 @@
 	--img-radius: 0px;
 }
 
-/* Lab variant: black-background theme. Token-level invert so the whole site
-   flips; chrome that uses mix-blend-mode: exclusion keeps inverting over
-   imagery as before. (Design Lab scaffolding — see lab.svelte.ts.) */
+/* Dark theme. A warm near-black ground rather than pure #000: true black
+   swallows the dark edges of the object photography, so the floor is lifted
+   just off black and given a touch of warmth to match the paper-white side.
+   Text is a warm off-white to cut the glare of #fff on a dark field. Chrome
+   using mix-blend-mode: exclusion keeps inverting over imagery on its own. */
 :root[data-theme='dark'] {
-	--color-primary: #ffffff;
-	--color-muted: #9a9a9a;
-	--color-structural: #2a2a2a;
-	--color-bg: #000000;
-	--color-hover: #141414;
+	--color-primary: #f2efe9;
+	--color-muted: #8c877e;
+	--color-structural: #2a2724;
+	--color-bg: #0e0d0b;
+	--color-hover: #181613;
+}
+
+/* Dark-only: a whisper hairline hugging each image edge, so a photo whose own
+   edges are near-black still separates from the ground. Offset inward so it
+   sits on the image rather than expanding its box (light mode stays frameless). */
+:root[data-theme='dark'] img {
+	outline: 1px solid var(--color-structural);
+	outline-offset: -1px;
 }
 
 html {

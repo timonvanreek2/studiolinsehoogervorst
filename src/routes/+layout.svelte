@@ -5,6 +5,7 @@
 	import Footer from '$lib/components/Footer.svelte';
 	import LabPanel from '$lib/components/LabPanel.svelte';
 	import { lab } from '$lib/lab.svelte';
+	import { theme } from '$lib/theme.svelte';
 
 	let { children, data } = $props();
 
@@ -21,11 +22,11 @@
 		}
 	});
 
-	// Root-level variant: the dark-theme toggle.
+	// Apply the visitor's light/dark choice to the document root.
 	$effect(() => {
 		if (!browser) return;
 		const root = document.documentElement;
-		if (lab.dark) root.setAttribute('data-theme', 'dark');
+		if (theme.value === 'dark') root.setAttribute('data-theme', 'dark');
 		else root.removeAttribute('data-theme');
 	});
 

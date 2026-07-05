@@ -7,7 +7,6 @@
 		saveLab();
 	});
 
-	const toggles = [{ key: 'dark', label: 'Black background', hint: 'inverted theme' }] as const;
 </script>
 
 {#if lab.enabled && lab.collapsed}
@@ -25,14 +24,6 @@
 				<button class="close" onclick={() => (lab.collapsed = true)} aria-label="Minimise lab panel">×</button>
 			</div>
 		</header>
-
-		{#each toggles as t}
-			<label class="row">
-				<input type="checkbox" bind:checked={lab[t.key]} />
-				<span class="name">{t.label}</span>
-				<span class="hint">{t.hint}</span>
-			</label>
-		{/each}
 
 		<div class="group">
 			<span class="group-title">Hero opening</span>

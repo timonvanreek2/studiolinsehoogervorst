@@ -13,8 +13,6 @@ export type LabFlags = {
 	enabled: boolean;
 	/** Panel minimised to its launcher pill (still active, just out of the way). */
 	collapsed: boolean;
-	/** Invert the whole site to a black background. */
-	dark: boolean;
 	/** Homepage hero: open the image inset with margin rather than full-bleed cover. */
 	heroInset: boolean;
 	/** Inset opening width as a % of the viewport (heroInset only). */
@@ -28,7 +26,6 @@ export type LabFlags = {
 const DEFAULTS: LabFlags = {
 	enabled: false,
 	collapsed: false,
-	dark: false,
 	heroInset: true,
 	heroInsetScale: 64,
 	framedOpen: 'landscape',
@@ -38,7 +35,6 @@ const DEFAULTS: LabFlags = {
 // Which keys reset returns to default — everything except the lab's own
 // presence (enabled) and whether the panel is open (collapsed).
 const VARIANT_KEYS = [
-	'dark',
 	'heroInset',
 	'heroInsetScale',
 	'framedOpen',

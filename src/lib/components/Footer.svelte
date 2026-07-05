@@ -1,4 +1,6 @@
 <script lang="ts">
+	import ThemeToggle from './ThemeToggle.svelte';
+
 	let {
 		studio = null
 	}: {
@@ -31,7 +33,10 @@
 			</div>
 		</div>
 
-		<p class="copyright">© 2025 Studio Linse All rights reserved</p>
+		<div class="footer-end">
+			<ThemeToggle />
+			<p class="copyright">© 2025 Studio Linse All rights reserved</p>
+		</div>
 	</div>
 </footer>
 
@@ -46,7 +51,7 @@
 		font-weight: 450;
 		font-size: 12px;
 		line-height: 16px;
-		color: #000;
+		color: var(--color-primary);
 		box-sizing: border-box;
 	}
 
@@ -55,6 +60,15 @@
 		align-items: flex-end;
 		justify-content: space-between;
 		gap: 16px;
+	}
+
+	/* Right cluster: theme switch above the copyright line, right-aligned so
+	   the copyright edge stays where it was. */
+	.footer-end {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 6px;
 	}
 
 	/* Two text blocks, grouped at the bottom-left. */
@@ -85,7 +99,7 @@
 
 	.copyright {
 		margin: 0;
-		color: #999;
+		color: var(--color-muted);
 		white-space: nowrap;
 	}
 
@@ -105,6 +119,10 @@
 
 		.footer-content {
 			gap: 16px 32px;
+		}
+
+		.footer-end {
+			align-items: flex-start;
 		}
 	}
 </style>
