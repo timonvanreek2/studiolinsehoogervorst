@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { tick } from 'svelte';
 	import CatalogueGrid from '$lib/components/CatalogueGrid.svelte';
 	import Wordmark from '$lib/components/Wordmark.svelte';
 	import MobileMenu from '$lib/components/MobileMenu.svelte';
@@ -408,18 +407,6 @@
 		const onResize = () => layout();
 		window.addEventListener('resize', onResize);
 		return () => window.removeEventListener('resize', onResize);
-	});
-
-	// A grid-spacing change resizes the hero's cell, so the dock keyframes (built
-	// from the cell's width/position) have to be rebuilt — otherwise the hero docks
-	// to the previous cell. The spacing is applied to the document root by the
-	// layout component's own effect; await tick() so that flush has landed and the
-	// cell has its new size before we re-measure (reading it synchronously here
-	// would race and capture the old geometry). tick() also covers a stored
-	// non-default preset on first mount, where the same ordering applies.
-	$effect(() => {
-		void lab.gridPreset;
-		tick().then(layout);
 	});
 </script>
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { lab, saveLab, resetLab, SPACING_PRESETS, type SpacingPresetKey } from '$lib/lab.svelte';
+	import { lab, saveLab, resetLab } from '$lib/lab.svelte';
 
 	// Persist whenever any flag changes.
 	$effect(() => {
@@ -8,12 +8,6 @@
 	});
 
 	const toggles = [{ key: 'dark', label: 'Black background', hint: 'inverted theme' }] as const;
-
-	// Desktop grid spacing — discrete versions to pick between, not free sliders.
-	const spacingPresets = Object.entries(SPACING_PRESETS) as [
-		SpacingPresetKey,
-		(typeof SPACING_PRESETS)[SpacingPresetKey]
-	][];
 </script>
 
 {#if lab.enabled && lab.collapsed}
@@ -54,22 +48,6 @@
 					<span class="slider-val">{lab.heroInsetScale}</span>
 				</label>
 			{/if}
-		</div>
-
-		<div class="group">
-			<span class="group-title">Grid spacing</span>
-			{#each spacingPresets as [key, p]}
-				<label class="row">
-					<input
-						type="radio"
-						name="gridPreset"
-						checked={lab.gridPreset === key}
-						onchange={() => (lab.gridPreset = key)}
-					/>
-					<span class="name">{p.label}</span>
-					<span class="hint">{p.hint}</span>
-				</label>
-			{/each}
 		</div>
 
 		<div class="group">

@@ -8,28 +8,6 @@ import { browser } from '$app/environment';
 
 const KEY = 'slh-lab';
 
-// ─── Desktop grid-spacing presets ──────────────────────────────────────────
-// Discrete "versions" to compare in the lab, instead of free sliders — easier
-// to judge a handful of considered options (and to show a client) than to fish
-// for values on three tracks. Each is a distinct CHARACTER of whitespace, not
-// just a uniform scale: the column / row / side-padding ratio is what gives a
-// grid its feel. Values are px and only bite above 1024px — below that the grid
-// falls back to fixed spacing, so this is purely the desktop design statement.
-// Ordered generous → tight. Default is the current (most generous) treatment;
-// the rest step the grid progressively denser, since the open question is how
-// far in from "current" we can go before it reads as an Instagram grid rather
-// than an editorial one. Row gap runs a touch over column gap throughout, to
-// keep a vertical rhythm as things tighten.
-export const SPACING_PRESETS = {
-	default: { label: 'Default', hint: 'current', col: 160, row: 160, padding: 180 },
-	roomy: { label: 'Roomy', hint: 'slightly tighter', col: 120, row: 128, padding: 152 },
-	balanced: { label: 'Balanced', hint: 'medium density', col: 84, row: 96, padding: 120 },
-	compact: { label: 'Compact', hint: 'dense, grid-forward', col: 48, row: 64, padding: 88 },
-	snug: { label: 'Snug', hint: 'tightest, gallery wall', col: 20, row: 36, padding: 56 }
-} as const;
-
-export type SpacingPresetKey = keyof typeof SPACING_PRESETS;
-
 export type LabFlags = {
 	/** Master switch: is the lab present in this browser at all. */
 	enabled: boolean;
@@ -41,8 +19,6 @@ export type LabFlags = {
 	heroInset: boolean;
 	/** Inset opening width as a % of the viewport (heroInset only). */
 	heroInsetScale: number;
-	/** Which desktop grid-spacing version is active (see SPACING_PRESETS). */
-	gridPreset: SpacingPresetKey;
 	/** Detail page: which orientation the framed spread opens on (the hero image). */
 	framedOpen: 'landscape' | 'portrait';
 	/** Detail page (mobile only): swap the vertical rhythm for a swipeable image carousel. */
@@ -55,7 +31,6 @@ const DEFAULTS: LabFlags = {
 	dark: false,
 	heroInset: true,
 	heroInsetScale: 64,
-	gridPreset: 'default',
 	framedOpen: 'landscape',
 	mobileCarousel: false
 };
@@ -66,7 +41,6 @@ const VARIANT_KEYS = [
 	'dark',
 	'heroInset',
 	'heroInsetScale',
-	'gridPreset',
 	'framedOpen',
 	'mobileCarousel'
 ] as const;

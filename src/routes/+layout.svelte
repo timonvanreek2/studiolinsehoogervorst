@@ -4,7 +4,7 @@
 	import { browser } from '$app/environment';
 	import Footer from '$lib/components/Footer.svelte';
 	import LabPanel from '$lib/components/LabPanel.svelte';
-	import { lab, SPACING_PRESETS } from '$lib/lab.svelte';
+	import { lab } from '$lib/lab.svelte';
 
 	let { children, data } = $props();
 
@@ -21,16 +21,12 @@
 		}
 	});
 
-	// Variants that apply at the document root: theme, caption gap, grid spacing.
+	// Root-level variant: the dark-theme toggle.
 	$effect(() => {
 		if (!browser) return;
 		const root = document.documentElement;
 		if (lab.dark) root.setAttribute('data-theme', 'dark');
 		else root.removeAttribute('data-theme');
-		const sp = SPACING_PRESETS[lab.gridPreset] ?? SPACING_PRESETS.default;
-		root.style.setProperty('--lab-col-gap', `${sp.col}px`);
-		root.style.setProperty('--lab-row-gap', `${sp.row}px`);
-		root.style.setProperty('--lab-grid-padding', `${sp.padding}px`);
 	});
 
 	// Shift+L toggles the panel from anywhere.
