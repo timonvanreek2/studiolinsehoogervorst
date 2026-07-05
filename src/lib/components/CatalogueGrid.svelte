@@ -253,6 +253,9 @@
 		opacity: 0;
 		transition: opacity 0.5s cubic-bezier(0.23, 1, 0.32, 1);
 		transition-delay: var(--stagger-delay, 0ms);
+		/* Size-container so the caption can respond to the IMAGE's width, not the
+		   viewport's — the city hides when the cell itself gets small (see below). */
+		container-type: inline-size;
 	}
 
 	.cell:global(.visible) {
@@ -406,6 +409,14 @@
 	.label--always .label-loc {
 		flex: 0 0 auto;
 		color: var(--color-muted);
+	}
+	/* Once the image gets small (narrow 3-up triptych), drop the city so the title
+	   isn't crowded onto a stub of a line. Keyed to the cell width, so it stays
+	   visible in the wider single-column feed on phones. */
+	@container (max-width: 200px) {
+		.label--always .label-loc {
+			display: none;
+		}
 	}
 
 
