@@ -214,22 +214,21 @@
 
 
 <style>
-	/* Proportional editorial grid: the gutters and side padding are fractional
-	   TRACKS of the grid, not fixed px — so whitespace scales with the image
-	   columns and the composition ratio holds at every width. The fr ratios
-	   (pad 2.25 : column 3.5 : gutter 2) are calibrated to land on the tuned
-	   look (~180px pad, ~407px column, ~160px gutter) around 1500px, then scale
-	   up and down from there. A max-width caps runaway growth on ultrawide
-	   screens; row-gap tracks the column gutter via a matching fluid clamp
-	   (row-gap can't be an fr, so it mirrors the gutter's proportion in vw). */
+	/* Proportional editorial grid. Inter-column GUTTERS are fractional tracks
+	   (column 3.5 : gutter 2) so the rhythm between images scales with their size.
+	   The SIDE padding is a floored clamp rather than an fr track: 11.84vw is
+	   exactly what a 2.25fr side track resolves to (2.25 / 19fr total), so on wide
+	   screens this is pixel-identical to a pure proportional grid — but the 180px
+	   floor keeps the rails from starving below ~1520px, where they'd otherwise
+	   drop under the mid-height wordmark (left) and nav (right) and let images run
+	   beneath them. The ceiling matches the 2.25fr track at the 2400px max-width.
+	   row-gap mirrors the column gutter via a vw clamp (row-gap can't be an fr). */
 	.grid {
 		display: grid;
-		grid-template-columns:
-			2.25fr
-			[c] 3.5fr 2fr [c] 3.5fr 2fr [c] 3.5fr
-			2.25fr;
+		grid-template-columns: [c] 3.5fr 2fr [c] 3.5fr 2fr [c] 3.5fr;
 		column-gap: 0;
 		row-gap: clamp(64px, 10.5vw, 252px);
+		padding-inline: clamp(180px, 11.84vw, 284px);
 		max-width: 2400px;
 		margin-inline: auto;
 		align-items: start;
@@ -237,13 +236,13 @@
 	/* Pin each of the three cells per row to a content track, skipping the
 	   gutter tracks (auto-placement alone would fill the gutters too). */
 	.cell:nth-child(3n + 1) {
-		grid-column: 2;
+		grid-column: 1;
 	}
 	.cell:nth-child(3n + 2) {
-		grid-column: 4;
+		grid-column: 3;
 	}
 	.cell:nth-child(3n + 3) {
-		grid-column: 6;
+		grid-column: 5;
 	}
 
 	.cell {
@@ -410,26 +409,11 @@
 	}
 
 
-	/* Tablet keeps the three-up grid — no two-column step. The layout is either
-	   the editorial triptych (3) or the single-column feed (1), never an in-between
-	   2-up. Spacing tightens from the generous desktop values so three columns
-	   still fit comfortably down to the single-column switch. */
-	@media (max-width: 1024px) {
-		/* Below the desktop range the proportional tracks would leave columns too
-		   narrow, so fall back to an even 3-up with tighter fixed gutters. */
-		.grid {
-			grid-template-columns: repeat(3, 1fr);
-			column-gap: 40px;
-			row-gap: 60px;
-			padding: 0 40px;
-			max-width: none;
-		}
-		.cell:nth-child(3n + 1),
-		.cell:nth-child(3n + 2),
-		.cell:nth-child(3n + 3) {
-			grid-column: auto;
-		}
-	}
+	/* No tablet override: the proportional grid runs the whole desktop→tablet
+	   range. The 180px side-padding floor holds the wordmark/nav clear of the
+	   images as it narrows (columns get smaller, but the rails never collapse) —
+	   the layout stays the editorial triptych down to the single-column switch,
+	   never an in-between 2-up. */
 
 	@media (max-width: 768px) {
 		/* Single-column editorial feed: one project per row, each image a narrow
@@ -440,6 +424,12 @@
 			justify-items: center;
 			row-gap: 80px;
 			padding: 0 16px;
+		}
+		/* Drop the desktop track placement so cells stack in the single column. */
+		.cell:nth-child(3n + 1),
+		.cell:nth-child(3n + 2),
+		.cell:nth-child(3n + 3) {
+			grid-column: auto;
 		}
 
 		.cell {
