@@ -3,9 +3,12 @@
 	import CatalogueGrid from '$lib/components/CatalogueGrid.svelte';
 	import Wordmark from '$lib/components/Wordmark.svelte';
 	import MobileMenu from '$lib/components/MobileMenu.svelte';
-	import { lab } from '$lib/lab.svelte';
 
 	let { data } = $props();
+
+	// The hero opens as a centred, framed print — an inset a fixed fraction of the
+	// viewport — that shrinks and docks into its grid cell as you scroll.
+	const HERO_INSET_SCALE = 64;
 
 	let allProjects = $derived(
 		data.allProjects.filter((p) => p.image || (p.gallery && p.gallery.length > 0))
@@ -97,8 +100,7 @@
 	// Reduced motion has no dock — undefined falls back to the global radius.
 	let heroRadiusFactor = $derived.by(() => {
 		if (reduceMotion) return undefined;
-		if (lab.heroInset) return heroLandscape ? undefined : 1;
-		return progress <= 0.8 ? 0 : (progress - 0.8) / 0.2;
+		return heroLandscape ? undefined : 1;
 	});
 
 	let ticking = false;
@@ -246,17 +248,17 @@
 		let startW: number;
 		let startH: number;
 
-		if (lab.heroInset && vw > 768) {
+		if (vw > 768) {
 			// Smaller "framed print" opening (desktop only) — a centred image, the full
 			// composition visible, that docks into the grid cell. On phones the inset
 			// shrinks to a timid stamp, so mobile falls through to the full-bleed opening
 			// below, matching the full-bleed detail page. The size slider is a fraction of
 			// the full opening: a share of width for landscape, of height for portrait.
 			if (heroLandscape) {
-				startW = vw * (lab.heroInsetScale / 100);
+				startW = vw * (HERO_INSET_SCALE / 100);
 				startH = startW / openAspect;
 			} else {
-				startH = vh * (lab.heroInsetScale / 100);
+				startH = vh * (HERO_INSET_SCALE / 100);
 				startW = startH * openAspect;
 			}
 
@@ -426,8 +428,6 @@
 		void singleColumn;
 		// re-measure the dock when the hero opening changes shape/size
 		void heroLandscape;
-		void lab.heroInset;
-		void lab.heroInsetScale;
 		layout();
 		onScroll();
 		const onResize = () => layout();
