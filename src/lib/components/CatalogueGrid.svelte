@@ -135,10 +135,6 @@
 	class="grid"
 	class:gated={!revealed}
 	class:docked
-	style:--cols={3}
-	style:--col-gap="var(--lab-col-gap, 160px)"
-	style:--row-gap="var(--lab-row-gap, 160px)"
-	style:--padding="var(--lab-grid-padding, 180px)"
 	style:--aspect="4 / 5"
 	style:--label-size="13px"
 	style:--label-color="var(--color-muted)"
@@ -218,13 +214,36 @@
 
 
 <style>
+	/* Proportional editorial grid: the gutters and side padding are fractional
+	   TRACKS of the grid, not fixed px — so whitespace scales with the image
+	   columns and the composition ratio holds at every width. The fr ratios
+	   (pad 2.25 : column 3.5 : gutter 2) are calibrated to land on the tuned
+	   look (~180px pad, ~407px column, ~160px gutter) around 1500px, then scale
+	   up and down from there. A max-width caps runaway growth on ultrawide
+	   screens; row-gap tracks the column gutter via a matching fluid clamp
+	   (row-gap can't be an fr, so it mirrors the gutter's proportion in vw). */
 	.grid {
 		display: grid;
-		grid-template-columns: repeat(var(--cols), 1fr);
-		column-gap: var(--col-gap);
-		row-gap: var(--row-gap);
-		padding: 0 var(--padding);
+		grid-template-columns:
+			2.25fr
+			[c] 3.5fr 2fr [c] 3.5fr 2fr [c] 3.5fr
+			2.25fr;
+		column-gap: 0;
+		row-gap: clamp(64px, 10.5vw, 252px);
+		max-width: 2400px;
+		margin-inline: auto;
 		align-items: start;
+	}
+	/* Pin each of the three cells per row to a content track, skipping the
+	   gutter tracks (auto-placement alone would fill the gutters too). */
+	.cell:nth-child(3n + 1) {
+		grid-column: 2;
+	}
+	.cell:nth-child(3n + 2) {
+		grid-column: 4;
+	}
+	.cell:nth-child(3n + 3) {
+		grid-column: 6;
 	}
 
 	.cell {
@@ -383,6 +402,7 @@
 	.label--always .label-title {
 		flex: 1 1 auto;
 		min-width: 0;
+		overflow-wrap: anywhere;
 	}
 	.label--always .label-loc {
 		flex: 0 0 auto;
@@ -395,10 +415,19 @@
 	   2-up. Spacing tightens from the generous desktop values so three columns
 	   still fit comfortably down to the single-column switch. */
 	@media (max-width: 1024px) {
+		/* Below the desktop range the proportional tracks would leave columns too
+		   narrow, so fall back to an even 3-up with tighter fixed gutters. */
 		.grid {
+			grid-template-columns: repeat(3, 1fr);
 			column-gap: 40px;
 			row-gap: 60px;
 			padding: 0 40px;
+			max-width: none;
+		}
+		.cell:nth-child(3n + 1),
+		.cell:nth-child(3n + 2),
+		.cell:nth-child(3n + 3) {
+			grid-column: auto;
 		}
 	}
 
