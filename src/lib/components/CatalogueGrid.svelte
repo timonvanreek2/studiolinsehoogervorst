@@ -251,10 +251,12 @@
 		will-change: transform;
 	}
 
-	/* The hero's title may only appear once the image has reached its
-	   final scale — never while it is still transforming. */
-	.grid:not(.docked) .hero-cell .label {
-		opacity: 0;
+	/* All project titles fade in together, a beat after the hero has slotted into
+	   the grid — shared transition-delay, no per-cell stagger, so they arrive as
+	   one. Gated on the whole grid docking (the hero reaching its final slot). */
+	.grid.docked .label--always {
+		opacity: 1;
+		transition-delay: 0.35s;
 	}
 
 	.cell img.cover {
@@ -366,7 +368,10 @@
 		font-size: 12px;
 		font-weight: 500;
 		color: var(--color-primary);
-		opacity: 1;
+		/* Hidden until the hero docks, then all titles fade in together a beat
+		   later (see .grid.docked rule). Fades out promptly on scroll back up. */
+		opacity: 0;
+		transition: opacity 0.6s cubic-bezier(0.23, 1, 0.32, 1);
 	}
 	/* In the narrow 3-up cells a long title + long location can't share one line.
 	   Let the title take the remaining width and wrap; the location keeps its natural
