@@ -4,6 +4,12 @@
 	let { data } = $props();
 	let project = $derived(data.project);
 
+	let categoryLabel = $derived(
+		project.category
+			? project.category.replace('-', ' & ').replace(/\b\w/g, (c) => c.toUpperCase())
+			: ''
+	);
+
 	let aspectByUrl = $derived.by(() => {
 		const m = new Map<string, number>();
 		for (const g of project.gallery ?? []) {
@@ -206,7 +212,7 @@
 			</div>
 			<div class="meta-group">
 				{#if project.category}
-					<span class="meta-title">{project.category.replace('-', ' & ').replace(/\b\w/g, (c) => c.toUpperCase())}</span>
+					<span class="meta-title">{categoryLabel}</span>
 				{/if}
 				{#if project.completion}<span class="meta-detail">Completed in {project.completion}</span>{/if}
 			</div>
@@ -227,6 +233,7 @@
 					class="fr-band fr-{band.place}"
 					class:hero-wide={band.place === 'hero'}
 					class:fr-wide={band.img.aspect > 1.2}
+					class:mobile-inset={b > 0 && band.place !== 'full' && (b - 1) % 4 === 0}
 				>
 					<div class="fr-cell">
 						<img
@@ -236,6 +243,7 @@
 							sizes="100vw"
 							alt="{project.title} — image {b + 1}"
 							loading={b < 2 ? 'eager' : 'lazy'}
+							style="aspect-ratio: {band.img.aspect};"
 						/>
 					</div>
 					{#if band.accent}
@@ -253,6 +261,14 @@
 					{#if band.place === 'hero' && project.description?.length}
 						<div class="fr-copy">
 							{#each project.description as paragraph}<p>{paragraph}</p>{/each}
+							<div class="fr-copy-meta">
+								{#if project.category}
+									<p><span>{categoryLabel}</span>{#if project.completion}<span>Completed in {project.completion}</span>{/if}</p>
+								{/if}
+								{#if project.photographer}
+									<p><span>Photography by</span><span>{project.photographer}</span></p>
+								{/if}
+							</div>
 						</div>
 					{/if}
 				</div>
@@ -433,141 +449,122 @@
 	.fr-copy p + p {
 		margin-top: 1em;
 	}
+	/* Category / photography meta — desktop keeps these in the fixed top bar, so the
+	   in-copy version only appears at the mobile breakpoint below. */
+	.fr-copy-meta {
+		display: none;
+	}
 
 	@media (max-width: 768px) {
-		/* Phones follow the mobile Figma (node 368-5): a text cover first — title + Close,
-		   category, photographer, then the full description — as plain black text on white,
-		   12px inset. The images then stack full-bleed below. Nothing is overlaid on a hero. */
+		/* Phones follow the mobile Figma (node 371-38): a full-bleed hero opens the page
+		   with the title + Close overlaid on it; the description and project meta sit
+		   below on white; the gallery then runs as a calm, generously spaced rhythm of
+		   full-bleed and centred inset prints. */
 
-		/* Meta bar flows at the top of the scroll (not fixed) and drops mix-blend so it
-		   reads as solid black on the white cover. Row 1 = title + Close; category and
-		   photographer wrap to their own full-width rows, 32px apart (Figma gap-[32px]). */
+		/* Title + Close overlaid on the hero (absolute, scrolls away with it). Keeps the
+		   desktop exclusion blend + white so it inverts over the photo. Category and
+		   photographer drop out here — they reappear below the copy. */
 		.fr-bar {
-			position: static;
-			flex-wrap: wrap;
-			row-gap: 32px;
-			column-gap: 16px;
-			padding: 12px 12px 0;
-			mix-blend-mode: normal;
-			color: var(--color-primary);
-			pointer-events: auto;
+			position: absolute;
+			padding: 12px;
 		}
-		.fr-bar .meta-group {
-			min-width: 0;
-			gap: 0;
+		.fr-bar .meta-group:nth-child(2),
+		.fr-bar .meta-group:nth-child(3) {
+			display: none;
 		}
 		.fr-bar .meta-group:first-child {
 			flex: 1 1 auto;
-			order: 1;
 		}
 		.fr-bar .meta-group.right {
 			flex: 0 0 auto;
-			order: 2;
-			margin-left: auto;
-			align-items: flex-end;
-		}
-		/* Category + photographer each take their own full-width row under the title. */
-		.fr-bar .meta-group:nth-child(2),
-		.fr-bar .meta-group:nth-child(3) {
-			flex: 1 1 100%;
-			order: 3;
 		}
 
-		/* Mobile rhythm: the desktop composition roles drive two alternating beats
-		   instead of one uniform stack. FULL-BLEED (hero + wide/full bands) run
-		   edge-to-edge and touch like a filmstrip; FRAMED (left/mid/right column
-		   bands) sit inset as smaller prints with air around them, nudged to
-		   alternating sides so they never line up. Landscape frames (fr-wide) keep a
-		   wider crop rather than being squeezed into the tall portrait mould. */
+		/* Bands flow in normal document order, no overlap, generous air between every
+		   image (the desktop -1px seam overlap is undone). */
 		.fr-band {
 			height: auto;
 			display: block;
 			margin: 0;
 		}
-
-		/* Full-bleed beats — immersive, touching. The hero-wide selector is repeated
-		   here to out-specify the desktop dock-width rule (media queries add no
-		   specificity), so the opener goes edge-to-edge on phones. */
-		.fr-full .fr-cell,
-		.fr-hero .fr-cell,
-		.fr-hero.hero-wide .fr-cell {
-			width: 100%;
-			margin: 0;
-			height: auto;
-			aspect-ratio: 402 / 523;
-		}
-		.fr-full.fr-wide .fr-cell,
-		.fr-hero.fr-wide .fr-cell,
-		.fr-hero.hero-wide .fr-cell {
-			aspect-ratio: 3 / 2;
-		}
-		.fr-full + .fr-full,
-		.fr-hero + .fr-full {
-			margin-top: -1px;
+		.fr-band + .fr-band {
+			margin-top: 104px;
 		}
 
-		/* Framed beats — inset prints with breathing room, alternating alignment. The
-		   .fr-band prefix out-specifies the desktop `.fr-band + .fr-band` overlap rule
-		   so framed prints get air on BOTH sides, even after a full-bleed neighbour. */
-		.fr-band.fr-left,
-		.fr-band.fr-mid,
-		.fr-band.fr-right {
-			margin: 48px 0;
-		}
-		.fr-left .fr-cell,
-		.fr-mid .fr-cell,
-		.fr-right .fr-cell {
-			height: auto;
-			aspect-ratio: 4 / 5;
-		}
-		.fr-left.fr-wide .fr-cell,
-		.fr-mid.fr-wide .fr-cell,
-		.fr-right.fr-wide .fr-cell {
-			aspect-ratio: 4 / 3;
-		}
-		.fr-left .fr-cell {
-			width: 76%;
-			margin: 0 auto 0 var(--fr-edge);
-		}
-		.fr-right .fr-cell {
-			width: 76%;
-			margin: 0 var(--fr-edge) 0 auto;
-		}
-		.fr-mid .fr-cell {
-			width: 70%;
-			margin: 0 auto;
-		}
-
-		/* The hero band leads with the description above its image (order:-1), so the page
-		   opens on the text cover and the hero becomes the first full-bleed image below. */
+		/* Hero: full-bleed, cover-cropped to a tall opening frame; copy follows below. */
 		.fr-band.fr-hero {
 			display: flex;
 			flex-direction: column;
+			margin-top: 0;
+		}
+		.fr-hero .fr-cell,
+		.fr-hero.hero-wide .fr-cell,
+		.fr-hero.fr-wide .fr-cell {
+			width: 100%;
+			margin: 0;
+			height: auto;
+			aspect-ratio: 402 / 560;
 		}
 		.fr-copy {
 			position: static;
-			order: -1;
+			order: 0;
 			width: auto;
-			margin: 32px 12px 24px;
+			margin: 28px 12px 0;
+		}
+		.fr-copy-meta {
+			display: block;
+			margin-top: 32px;
+		}
+		.fr-copy-meta p {
+			margin: 0;
+		}
+		.fr-copy-meta p + p {
+			margin-top: 20px;
+		}
+		.fr-copy-meta span {
+			display: block;
 		}
 
-		/* Accents stay small and inset, offset to the clear side opposite their band. */
+		/* Gallery beats: every image runs full-bleed at its natural height — portrait
+		   frames included, so they read tall and immersive rather than boxed. A centred
+		   inset print punctuates the rhythm (the opener + every fourth beat), and the
+		   small accents float between, so it's not an unbroken wall of full frames. */
+		.fr-full .fr-cell,
+		.fr-left .fr-cell,
+		.fr-mid .fr-cell,
+		.fr-right .fr-cell {
+			width: 100%;
+			margin: 0;
+			height: auto;
+		}
+		.fr-full .fr-img,
+		.fr-left .fr-img,
+		.fr-mid .fr-img,
+		.fr-right .fr-img {
+			height: auto;
+		}
+		.fr-band.mobile-inset .fr-cell {
+			width: 70%;
+			margin: 0 auto;
+			height: auto;
+			aspect-ratio: 282 / 390;
+		}
+		.fr-band.mobile-inset .fr-img {
+			height: 100%;
+		}
+
+		/* Accents: small centred prints, their own beat below the band image. */
 		.fr-accent {
 			position: static;
-			width: 50%;
+			width: 43%;
 			height: auto;
-			aspect-ratio: 3 / 4;
-			margin: 20px 0 4px;
+			aspect-ratio: 174 / 242;
+			margin: 104px auto 0;
 		}
-		.fr-accent--left {
-			margin-left: var(--fr-edge);
-			margin-right: auto;
-		}
+		.fr-accent--left,
 		.fr-accent--right {
 			margin-left: auto;
-			margin-right: var(--fr-edge);
+			margin-right: auto;
 		}
-
 	}
 
 
