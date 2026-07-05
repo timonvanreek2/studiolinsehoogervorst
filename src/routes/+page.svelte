@@ -188,8 +188,12 @@
 			for (let i = 0; i <= STEPS; i++) {
 				const p = i / STEPS;
 				const d = landscapeDelta(easeDock(p));
+				// The window's vertical position must cancel the LINEAR page scroll to
+				// stay optically centred; the eased dy over-shoots, so add back the
+				// scroll term at the raw (linear) fraction. Horizontal + scale stay eased.
+				const dy = d.dy + (p - easeDock(p)) * SCROLL_RANGE;
 				const pct = (p * 100).toFixed(1);
-				win += `${pct}% { transform: translate(${d.dx.toFixed(2)}px, ${d.dy.toFixed(2)}px) scale(${d.sx.toFixed(5)}, ${d.sy.toFixed(5)}); }`;
+				win += `${pct}% { transform: translate(${d.dx.toFixed(2)}px, ${dy.toFixed(2)}px) scale(${d.sx.toFixed(5)}, ${d.sy.toFixed(5)}); }`;
 				img += `${pct}% { transform: translate(${d.tx.toFixed(2)}px, ${d.ty.toFixed(2)}px) scale(${d.kx.toFixed(5)}, ${d.ky.toFixed(5)}); }`;
 			}
 			return win + '}' + img + '}';
@@ -201,7 +205,9 @@
 		const STEPS = 24;
 		for (let i = 0; i <= STEPS; i++) {
 			const p = i / STEPS;
-			const { dx, dy, s } = heroDelta(easeDock(p));
+			const { dx, dy: dyEased, s } = heroDelta(easeDock(p));
+			// Keep the vertical scroll-cancellation linear (see landscape note above).
+			const dy = dyEased + (p - easeDock(p)) * SCROLL_RANGE;
 			css += `${(p * 100).toFixed(1)}% { transform: translate(${dx.toFixed(2)}px, ${dy.toFixed(2)}px) scale(${s.toFixed(5)}); }`;
 		}
 		return css + '}';
@@ -333,7 +339,11 @@
 
 	function applyFrame(y: number) {
 		if (!heroEl || !raf) return;
-		const p = easeDock(Math.min(Math.max(y / SCROLL_RANGE, 0), 1));
+		const t = Math.min(Math.max(y / SCROLL_RANGE, 0), 1);
+		const p = easeDock(t);
+		// Vertical scroll-cancellation stays linear in the raw fraction; only scale
+		// and the horizontal slide ease (see buildKeyframes).
+		const dyFix = (t - p) * SCROLL_RANGE;
 		if (heroLandscape) {
 			if (!cropEl || !wideImgEl) return;
 			if (p >= 1) {
@@ -342,7 +352,7 @@
 				return;
 			}
 			const d = landscapeDelta(p);
-			cropEl.style.transform = `translate(${d.dx}px, ${d.dy}px) scale(${d.sx}, ${d.sy})`;
+			cropEl.style.transform = `translate(${d.dx}px, ${d.dy + dyFix}px) scale(${d.sx}, ${d.sy})`;
 			wideImgEl.style.transform = `translate(${d.tx}px, ${d.ty}px) scale(${d.kx}, ${d.ky})`;
 			// Radius is left to the .crop's static CSS (renders scaled during the morph,
 			// exact 4px at the docked scale of 1) — never written per-frame, see buildKeyframes.
@@ -352,7 +362,8 @@
 			heroEl.style.transform = '';
 			return;
 		}
-		const { dx, dy, s } = heroDelta(p);
+		const { dx, dy: dyEased, s } = heroDelta(p);
+		const dy = dyEased + dyFix;
 		heroEl.style.transform = `translate(${dx}px, ${dy}px) scale(${s})`;
 	}
 
