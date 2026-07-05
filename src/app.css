@@ -41,14 +41,6 @@
 	--color-hover: #181613;
 }
 
-/* Dark-only: a whisper hairline hugging each image edge, so a photo whose own
-   edges are near-black still separates from the ground. Offset inward so it
-   sits on the image rather than expanding its box (light mode stays frameless). */
-:root[data-theme='dark'] img {
-	outline: 1px solid var(--color-structural);
-	outline-offset: -1px;
-}
-
 html {
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
